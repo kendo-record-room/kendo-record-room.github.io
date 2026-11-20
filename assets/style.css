@@ -198,3 +198,95 @@ body.modal-open{overflow:hidden}
 
 /* Round 42 official source route: no change to recorded matches */
 .source-route{display:block;margin-top:3px;font-size:.78rem;line-height:1.45;white-space:normal}.source-route-note{font-size:.7rem}.source-route .data-link{font-weight:600}
+
+/* Round 60: World Kendo Championships archive */
+.wkc-years{display:flex;flex-wrap:wrap;gap:9px;margin:19px 0}
+.wkc-years a{display:inline-flex;border:1px solid #cbd6d9;background:#fff;padding:11px 16px;border-radius:9px;font-size:13px;font-weight:850;color:#2b5166}
+.wkc-years a.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+.wkc-division{margin:28px 0 42px}.wkc-division>.section-title{font-size:20px;margin:0 0 11px}
+.wkc-division h4{margin:0;font-size:14px}.wkc-podium-group{margin-bottom:18px}.wkc-podium-group .pane-pad,.wkc-match-panel>.pane-pad{padding:14px 17px 10px}
+.wkc-match-panel{padding:0 0 14px}.wkc-match-panel .history-group{margin:0 13px 8px}.wkc-team-heading{margin-top:25px!important}
+.wkc-match-panel>.pane-pad p{margin:5px 0 0}.wkc-match-panel .history-group .pane-pad{padding:10px 15px}
+.wkc-match-panel .history-group summary{align-items:center}.wkc-division table td{font-size:12px}
+@media(max-width:760px){.wkc-years a{flex:1;justify-content:center;padding:9px 8px;font-size:12px}.wkc-match-panel .history-group{margin-left:8px;margin-right:8px}.wkc-match-panel .history-group summary{font-size:12px;padding:10px}.mobile-nav a{font-size:9px}.mobile-nav a .ico{font-size:17px}}
+
+/* 2026-11-20 / Round 61: historical and current names share one person ID */
+.detail-former{font-size:13px;color:var(--muted,#586877);margin:5px 0 12px;font-weight:650}.wkc-historic-name{display:inline-block;margin-left:5px}
+
+/* 第63組：五十音の行内ジャンプと年度限定の段位表示 */
+.kana-group-head{align-items:center;flex-wrap:wrap}
+.kana-sub-index{display:flex;align-items:center;gap:5px;flex-wrap:wrap;flex:1;min-width:0}
+.kana-sub-jump{display:inline-flex;align-items:center;justify-content:center;gap:4px;min-height:36px;min-width:40px;border:1px solid #c9dadd;border-radius:9px;padding:6px 7px;background:#f4f8f8;color:#245069;font-size:13px;font-weight:850}
+.kana-sub-jump:not(:disabled):hover{background:#e6f0f2;border-color:#7e9ea9}
+.kana-sub-jump:disabled{opacity:.36;cursor:default}
+.kana-sub-count{font-size:10px;color:#718998;font-variant-numeric:tabular-nums}
+.kana-subgroup{min-width:0;margin:0 0 18px}
+.kana-subgroup:last-child{margin-bottom:0}
+.kana-subgroup-title{font-size:15px;font-weight:900;color:#3b6274;margin:0 0 12px;padding:0 0 6px;border-bottom:1px solid #dce7e9;scroll-margin-top:190px;outline-offset:4px}
+.event-grade-caption{font-size:11px;white-space:normal}
+@media(max-width:760px){
+ .kana-group-head{gap:9px;align-items:center}
+ .kana-sub-index{order:3;flex:0 0 100%;gap:7px}
+ .kana-sub-jump{flex:1;min-width:0;min-height:39px;font-size:14px}
+ .kana-subgroup-title{scroll-margin-top:210px}
+ .kana-subgroup{margin-bottom:22px}
+}
+
+/* Round 64: player record page - compact four-column year history, inline matches. */
+.profile-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+.profile-grid .definition{grid-template-columns:160px minmax(0,1fr)}
+.profile-last-source{margin:17px 0 0;line-height:1.7}
+.profile-history-table{width:100%;table-layout:fixed}
+.profile-history-table>thead th:nth-child(1){width:24%}
+.profile-history-table>thead th:nth-child(2){width:25%}
+.profile-history-table>thead th:nth-child(3){width:24%}
+.profile-history-table>thead th:nth-child(4){width:27%}
+.profile-history-table>tbody>.profile-year-row.is-expanded{background:#f4f9fa}
+.profile-history-table>tbody>.profile-year-detail[hidden]{display:none!important}
+.profile-year-toggle{background:transparent;border:0;padding:0;color:#244f65;text-align:left;display:flex;align-items:flex-start;gap:5px;flex-direction:column;cursor:pointer;width:100%;line-height:1.45}
+.profile-year-toggle:hover{text-decoration:underline}
+.profile-year-toggle span:first-child{font-weight:750}
+.profile-year-toggle strong{font-size:14px;font-weight:900}
+.profile-year-toggle .profile-year-arrow{font-size:10px;display:inline-block;transition:transform .2s}
+.profile-year-toggle[aria-expanded="true"] .profile-year-arrow{transform:rotate(180deg)}
+.profile-year-toggle:focus-visible{outline:3px solid #88b2cb;outline-offset:4px;border-radius:3px}
+.profile-year-foot{font-size:11px;color:var(--muted);margin-top:6px}
+.profile-row-note{font-size:12px;color:#637787;line-height:1.6;overflow-wrap:anywhere}
+.profile-year-detail>td{padding:0!important;border-bottom:2px solid #d8e4e7!important}
+.profile-inline-panel{padding:16px;background:#f3f8fa;border-left:3px solid #799cad}
+.profile-inline-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 20px;margin-bottom:10px}
+.profile-inline-head strong{font-size:14px}
+.profile-match-wrap{border:1px solid #dae5e7;border-radius:8px;background:#fff}
+.profile-match-table{width:100%}
+.profile-match-table th{background:#ecf2f5}
+@media(max-width:760px){
+ .profile-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .profile-stats .stat:last-child{grid-column:1/-1}
+ .profile-grid .definition{grid-template-columns:100px minmax(0,1fr)}
+ .profile-history-wrap{overflow:visible}
+ .profile-history-table{display:block;min-width:0;table-layout:auto}
+ .profile-history-table>thead{display:none}
+ .profile-history-table>tbody{display:block}
+ .profile-history-table>tbody>.profile-year-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px 14px;padding:15px 16px;border-bottom:1px solid var(--line)}
+ .profile-history-table>tbody>.profile-year-row>td{display:block;min-width:0;padding:0;border:0;overflow-wrap:anywhere}
+ .profile-history-table>tbody>.profile-year-row>td:nth-child(1){grid-column:1;grid-row:1/3}
+ .profile-history-table>tbody>.profile-year-row>td:nth-child(2){grid-column:2;grid-row:1;font-size:12px}
+ .profile-history-table>tbody>.profile-year-row>td:nth-child(3){grid-column:2;grid-row:2;font-size:13px}
+ .profile-history-table>tbody>.profile-year-row>td:nth-child(4){grid-column:1/-1;grid-row:3;font-size:11px}
+ .profile-history-table>tbody>.profile-year-detail{display:block;width:100%}
+ .profile-history-table>tbody>.profile-year-detail>td{display:block;width:100%}
+ .profile-inline-panel{padding:12px;border-left-width:2px}
+ .profile-match-wrap{overflow:visible!important}
+ .profile-match-table{display:block;min-width:0}
+ .profile-match-table>thead{display:none}
+ .profile-match-table>tbody{display:grid;gap:8px;padding:8px}
+ .profile-match-table>tbody>tr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px 9px;border:1px solid var(--line);border-radius:8px;padding:11px;background:#fff}
+ .profile-match-table>tbody>tr>td{border:0;padding:0;min-width:0;font-size:12px}
+ .profile-match-table>tbody>tr>td:nth-child(1){grid-column:1;grid-row:1}
+ .profile-match-table>tbody>tr>td:nth-child(2){grid-column:1/-1;grid-row:2}
+ .profile-match-table>tbody>tr>td:nth-child(3){grid-column:2;grid-row:1;text-align:right}
+ .profile-match-table>tbody>tr>td:nth-child(4){grid-column:1/-1;grid-row:3}
+}
+
+.profile-year-toggle .profile-year-arrow{position:absolute;right:3px;top:32px}
+.profile-year-toggle{position:relative;padding-right:17px}
