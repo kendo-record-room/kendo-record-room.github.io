@@ -753,10 +753,90 @@
       input.addEventListener('blur',()=>window.setTimeout(()=>{if(!list.contains(document.activeElement))close();},160));
     }
   }
-  function renderCompare(){const a=findP(compA)||players[0],b=findP(compB)||players[1];const compareFrom=2012;const aa=aggregate(a,compareFrom),bb=aggregate(b,compareFrom);const lines=[['氏名の読み',a.reading||'未確認',b.reading||'未確認'],['区分',a.gender,b.gender],['登録時の代表',a.pref,b.pref],['所属',a.aff,b.aff],['高校（出身・在籍を区別）',educationText(a,'high'),educationText(b,'high')],['大学（出身・在籍を区別）',educationText(a,'univ'),educationText(b,'univ')],['構え',a.stance||'—',b.stance||'—'],['対象期間の出場回数（'+compareFrom+'年〜）',aa.appearances,bb.appearances],['2026年の到達成績（未出場・未収録は—）',(a.isArchive2012||a.isArchive2013||a.isArchive2020||a.isArchive2021||a.isArchive2022||a.isArchive2023||a.isArchive2024||a.isArchive2025)?'—':aa.currentFinish,(b.isArchive2012||b.isArchive2013||b.isArchive2020||b.isArchive2021||b.isArchive2022||b.isArchive2023||b.isArchive2024||b.isArchive2025)?'—':bb.currentFinish],['2026年の勝利（未出場・未収録は—）',(a.isArchive2012||a.isArchive2013||a.isArchive2020||a.isArchive2021||a.isArchive2022||a.isArchive2023||a.isArchive2024||a.isArchive2025)?'—':aa.currentWins,(b.isArchive2012||b.isArchive2013||b.isArchive2020||b.isArchive2021||b.isArchive2022||b.isArchive2023||b.isArchive2024||b.isArchive2025)?'—':bb.currentWins],['対象期間の勝利（'+compareFrom+'年〜）',aa.wins,bb.wins],['面（' + compareFrom + '年〜）',aa.men,bb.men],['小手（' + compareFrom + '年〜）',aa.kote,bb.kote],['胴（' + compareFrom + '年〜）',aa.do,bb.do],['突き（' + compareFrom + '年〜）',aa.tsuki,bb.tsuki],['掲載期間の優勝',aa.titles,bb.titles],['掲載期間の決勝進出',aa.finals,bb.finals]];
-    return `${verifiedBanner}${pageHeader('PLAYER COMPARISON','選手比較','男女とも2012年以降の共通期間から2人を比較します。')}
-    <div class="compare-selects">${comparePicker(a,'A')}<div class="vs">VS</div>${comparePicker(b,'B')}</div>
-    ${a.id===b.id?'<div class="privacy-banner">同じ選手が選ばれています。別の選手を選ぶと比較できます。</div>':''}<div class="comparison"><div><strong>${pLink(a)}</strong></div><div>比較項目</div><div><strong>${pLink(b)}</strong></div>${lines.map(([label,x,y])=>{const k=label.startsWith('高校（')?'high':label.startsWith('大学（')?'univ':null; return `<div class="${typeof x==='number'?'big':''}">${esc(x)}</div><div>${esc(label)}</div><div class="${typeof y==='number'?'big':''}">${esc(y)}</div>`}).join('')}</div><div class="source-box">比較対象期間は${compareFrom}〜2026年。男女とも2012年以降の連続収録期間。過去の部分記録は加算しません。技B保留の試合は勝敗・本数を維持し、技別の比較集計から除外します。</div>`;}
+  // The comparison uses only the common, continuously recorded championship years.
+  // Tied best finishes display every corresponding year; never infer missing years.
+  function compareBestFinish(p,fromYear=2012){
+    const rs=complete.filter(r=>r.player===p.id&&r.kind!=='legacy'&&findE(r.event)?.year>=fromYear);
+    const highest=Math.max(0,...rs.map(r=>finishRank(r.finish)));
+    if(!highest)return '—';
+    const years=[...new Set(rs.filter(r=>finishRank(r.finish)===highest).map(r=>findE(r.event).year))].sort((a,b)=>a-b);
+    return `${finishLabel(highest)}（${years.join('・')}年）`;
+  }
+  // Only an actual recorded meeting of both canonical player IDs qualifies.
+  // 2011 men's bouts are included in the meeting list as reference, never in totals.
+  function compareHeadToHead(a,b){
+    if(a.id===b.id)return [];
+    return allScopedMatches.filter(m=>((m.left===a.id&&m.right===b.id)||(m.left===b.id&&m.right===a.id))
+      &&String(m.status||'').startsWith('A')&&Boolean(findE(m.event)))
+      .sort((x,y)=>findE(y.event).year-findE(x.event).year||(y.roundIndex??0)-(x.roundIndex??0));
+  }
+  function compareHeadToHeadView(a,b){
+    if(a.id===b.id)return '';
+    const meetings=compareHeadToHead(a,b);
+    const firstWins=meetings.filter(m=>m.winner===a.id).length;
+    const secondWins=meetings.filter(m=>m.winner===b.id).length;
+    const heading=`${esc(a.name)} ${firstWins}勝 − ${secondWins}勝 ${esc(b.name)}`;
+    const rows=meetings.map(m=>{
+      const e=findE(m.event);
+      const aIsLeft=m.left===a.id;
+      const aWon=m.winner===a.id;
+      const bWon=m.winner===b.id;
+      const aPoints=aWon?m.winPoints:m.losePoints;
+      const bPoints=bWon?m.winPoints:m.losePoints;
+      const aTech=aIsLeft?m.leftTech:m.rightTech;
+      const bTech=aIsLeft?m.rightTech:m.leftTech;
+      const tech=m.techVerified==='B'?'取得技未確認':`${esc(aTech||'—')} − ${esc(bTech||'—')}`;
+      const official=sourceLink(m.source||e.source,'公式結果');
+      const ref2011=e.year<2012?'<span class="compare-meeting-reference">参考記録・集計対象外</span>':'';
+      return `<article class="compare-meeting">
+        <div class="compare-meeting-top"><strong>${eLink(e)}</strong><span>${esc(m.round)}${ref2011}</span></div>
+        <div class="compare-meeting-content">
+          <div class="compare-meeting-contender ${aWon?'is-winner':''}"><span>${esc(a.name)}</span><strong>${aWon?'勝':'敗'}</strong></div>
+          <div class="compare-meeting-result"><strong>${scoreNumber(aPoints)} − ${scoreNumber(bPoints)}</strong><small>取得技 ${tech}</small></div>
+          <div class="compare-meeting-contender ${bWon?'is-winner':''}"><span>${esc(b.name)}</span><strong>${bWon?'勝':'敗'}</strong></div>
+        </div><div class="compare-meeting-link">${official}</div>
+      </article>`;
+    }).join('');
+    return `<section class="compare-head-to-head" aria-label="選手同士の直接対戦履歴">
+      <h3 class="section-title">過去の直接対戦</h3>
+      ${meetings.length?`<p class="compare-meeting-summary">収録済み ${meetings.length}試合：${heading}</p><div class="compare-meeting-list">${rows}</div>`
+        :'<p class="compare-meeting-empty">収録済みの公式試合記録では、2人の直接対戦は確認されていません。</p>'}
+    </section>`;
+  }
+  function renderCompare(){
+    const a=findP(compA)||players[0],b=findP(compB)||players[1];
+    const compareFrom=2012,aa=aggregate(a,compareFrom),bb=aggregate(b,compareFrom);
+    const tournament=a.gender===b.gender?playerChampionshipName(a):'全日本選手権／全日本女子選手権';
+    const profileRows=[
+      ['氏名の読み',a.reading||'未確認',b.reading||'未確認'],
+      ['区分',a.gender,b.gender],['登録時の代表',a.pref,b.pref],['所属',a.aff,b.aff],
+      ['高校（出身・在籍を区別）',educationText(a,'high'),educationText(b,'high')],
+      ['大学（出身・在籍を区別）',educationText(a,'univ'),educationText(b,'univ')],
+      ['構え',a.stance||'—',b.stance||'—']
+    ].map(([label,x,y])=>({label,x,y,championship:false}));
+    const championshipRows=[
+      ['出場回数',aa.appearances,bb.appearances],
+      ['最高成績（最高年）',compareBestFinish(a,compareFrom),compareBestFinish(b,compareFrom)],
+      ['勝利数',aa.wins,bb.wins],
+      ['面取得本数',aa.men,bb.men],
+      ['小手取得本数',aa.kote,bb.kote],
+      ['胴取得本数',aa.do,bb.do],
+      ['突き取得本数',aa.tsuki,bb.tsuki],
+      ['優勝回数',aa.titles,bb.titles],
+      ['決勝進出回数',aa.finals,bb.finals]
+    ].map(([label,x,y])=>({label,x,y,championship:true}));
+    const rows=[...profileRows,...championshipRows].map(({label,x,y,championship})=>{
+      const metricLabel=championship?`<span class="compare-tournament-name">${esc(tournament)}</span><span class="compare-metric-name">${esc(label)}</span>`:esc(label);
+      const valueCell=value=>`<div class="${typeof value==='number'?'big':championship&&label.startsWith('最高成績')?'compare-best-finish':''}">${esc(value)}</div>`;
+      return `${valueCell(x)}<div class="compare-label">${metricLabel}</div>${valueCell(y)}`;
+    }).join('');
+    return `${verifiedBanner}${pageHeader('PLAYER COMPARISON','選手比較','2人の全日本選手権の記録と過去の直接対戦を比較します。')}
+      <div class="compare-selects">${comparePicker(a,'A')}<div class="vs">VS</div>${comparePicker(b,'B')}</div>
+      ${a.id===b.id?'<div class="privacy-banner">同じ選手が選ばれています。別の選手を選ぶと比較できます。</div>':''}
+      <div class="comparison"><div><strong>${pLink(a)}</strong></div><div>比較項目</div><div><strong>${pLink(b)}</strong></div>${rows}</div>
+      ${compareHeadToHeadView(a,b)}
+      <div class="source-box"><strong>集計期間・注記</strong><p>全日本選手権（女子は全日本女子選手権）の出場回数・最高成績・勝利数・面／小手／胴／突きの取得本数・優勝回数・決勝進出回数は、男女とも<strong>${compareFrom}〜2026年</strong>の連続収録15大会を対象とします。2020年大会は2021年3月14日開催の延期大会で、2021年大会とは別に集計しています。</p><p>2011年男子の試合は集計に含めませんが、2人の直接対戦が確認できる場合は参考記録として表示します。技の確認が保留の試合は勝敗・勝利数を維持し、技別取得本数には加算しません。「直接対戦なし」は収録済み記録の範囲を示し、他大会での対戦がなかったことを意味しません。</p></div>`;
+  }
   function renderUpdates(){return `${pageHeader('CHANGELOG','更新履歴','記録追加・表示改善・調査上の判断の履歴。古い項目は作業当時の記述であり、現在の集計範囲とは異なる場合があります。')}<div class="eyecatch"><strong>現在の集計方針：</strong>男女とも2012〜2026年の15大会を対象に比較。2011年男子は参考記録のみ。延長B77試合・技B2試合は未確認として扱います。</div><div class="pane">${visibleUpdates.map(u=>`<article class="update"><div class="update-date">${esc(u.date)}</div><div><div style="margin-bottom:7px">${badge(u.tag)}</div><h3>${esc(u.title)}</h3><p>${esc(u.desc)}</p></div></article>`).join('')}</div><div class="source-box"><strong>取り込み元：</strong><p>男子：${esc(meta.sourceMen)}</p><p>女子：${esc(meta.sourceWomen)}</p><p>元Excel本体は変更していません。今後Excelのデータを更新した場合は、再変換することでサイト側にも反映します。</p></div>`;}
   const notFound=()=>'<h2 class="heading">ページが見つかりません</h2><a href="#/" class="btn">ホームへ戻る</a>';
   function bindCompareButtons(){document.querySelectorAll('[data-compare-add]').forEach(btn=>{btn.onclick=()=>{compA=compB;compB=btn.dataset.compareAdd;if(compA===compB){compA=players.find(p=>p.id!==compB).id;}location.hash='#/compare';render()}})}
