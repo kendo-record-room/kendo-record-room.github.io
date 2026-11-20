@@ -1,0 +1,2 @@
+'use strict';
+Object.assign(nameReadings, {"m11_01":{"reading":"いわした ともひさ","status":"A"},"m11_03":{"reading":"うつのみや とおる","status":"A"},"m11_42":{"reading":"かわかみ ありみつ","status":"A"},"m11_46":{"reading":"のりもと しこう","status":"A"},"m11_58":{"reading":"しょうだい けんじ","status":"A"},"m11_60":{"reading":"ほうじょう まさのり","status":"A"}});
