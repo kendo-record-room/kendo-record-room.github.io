@@ -702,7 +702,7 @@
       <p class="compare-hint">入力するたびに候補を絞り込みます</p></div>`;
   }
   function compareNameMatches(p,q){
-    return normKana([p.name,...(p.nameAliases||[]),p.formerName||'',p.reading,...(p.readingAliases||[]),p.formerReading||''].join(' ')).includes(q);
+    return [p.name,...(p.nameAliases||[]),p.formerName||'',p.reading,...(p.readingAliases||[]),p.formerReading||''].some(name=>normKana(name).startsWith(q));
   }
   function bindComparePickers(){
     for(const side of ['A','B']){
