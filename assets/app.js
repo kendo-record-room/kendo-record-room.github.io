@@ -686,9 +686,76 @@
     <div class="eyecatch"><strong>集計範囲：</strong><span id="rankingScope">男子・女子の対象期間を統一</span><p class="small muted">通算の生涯記録ではありません。対象期間外の部分記録はランキングに一切加算しません。公式資料同士で取得技が食い違う試合は、勝敗・本数は残し、技別集計のみ保留として除外します。</p></div>
     <div class="pane"><div class="pane-pad"><h3 class="section-title" id="metricHeading">記録ランキング</h3></div><div class="table-wrap"><table><thead><tr><th>順</th><th>選手</th><th>集計値</th><th>操作</th></tr></thead><tbody id="rankingBody"></tbody></table></div></div>
     <p class="footnote">※2020年大会は2021年3月14日開催（延期開催）で2021年大会と別集計。ランキングは男女とも2012〜2026年の共通15大会を使用し、生涯通算ではありません。技の公式資料間不一致2試合は技別集計から除外。延長の未確認77試合は勝敗記録を残して保留しています。</p>`;}
-  function renderCompare(){const a=findP(compA)||players[0],b=findP(compB)||players[1];const compareFrom=2012;const aa=aggregate(a,compareFrom),bb=aggregate(b,compareFrom);const opts=(selected)=>[...players].sort((a,b)=>a.gender.localeCompare(b.gender)||a.name.localeCompare(b.name,'ja')).map(p=>`<option value="${p.id}" ${p.id===selected?'selected':''}>${esc(p.name)}（${p.gender}）</option>`).join('');const lines=[['氏名の読み',a.reading||'未確認',b.reading||'未確認'],['区分',a.gender,b.gender],['登録時の代表',a.pref,b.pref],['所属',a.aff,b.aff],['高校（出身・在籍を区別）',educationText(a,'high'),educationText(b,'high')],['大学（出身・在籍を区別）',educationText(a,'univ'),educationText(b,'univ')],['構え',a.stance||'—',b.stance||'—'],['対象期間の出場回数（'+compareFrom+'年〜）',aa.appearances,bb.appearances],['2026年の到達成績（未出場・未収録は—）',(a.isArchive2012||a.isArchive2013||a.isArchive2020||a.isArchive2021||a.isArchive2022||a.isArchive2023||a.isArchive2024||a.isArchive2025)?'—':aa.currentFinish,(b.isArchive2012||b.isArchive2013||b.isArchive2020||b.isArchive2021||b.isArchive2022||b.isArchive2023||b.isArchive2024||b.isArchive2025)?'—':bb.currentFinish],['2026年の勝利（未出場・未収録は—）',(a.isArchive2012||a.isArchive2013||a.isArchive2020||a.isArchive2021||a.isArchive2022||a.isArchive2023||a.isArchive2024||a.isArchive2025)?'—':aa.currentWins,(b.isArchive2012||b.isArchive2013||b.isArchive2020||b.isArchive2021||b.isArchive2022||b.isArchive2023||b.isArchive2024||b.isArchive2025)?'—':bb.currentWins],['対象期間の勝利（'+compareFrom+'年〜）',aa.wins,bb.wins],['面（' + compareFrom + '年〜）',aa.men,bb.men],['小手（' + compareFrom + '年〜）',aa.kote,bb.kote],['胴（' + compareFrom + '年〜）',aa.do,bb.do],['突き（' + compareFrom + '年〜）',aa.tsuki,bb.tsuki],['掲載期間の優勝',aa.titles,bb.titles],['掲載期間の決勝進出',aa.finals,bb.finals]];
+  // Search only recorded names and official readings. Unknown readings stay after confirmed names.
+  const comparePlayersSorted=[...players].sort((a,b)=>{
+    const ax=a.readingStatus==='A'&&a.reading?0:1;
+    const bx=b.readingStatus==='A'&&b.reading?0:1;
+    return ax-bx||(ax===0?kanaCompare(a,b):kanaSorter.compare(normKana(a.name),normKana(b.name)))||a.id.localeCompare(b.id);
+  });
+  function comparePicker(p,side){
+    const id='comp'+side;
+    const order=side==='A'?'①':'②';
+    return `<div class="compare-side"><label class="small muted" for="${id}">比較する選手${order}</label>
+      <div class="compare-current" aria-live="polite"><strong>${esc(p.name)}</strong><span>${p.readingStatus==='A'&&p.reading?esc(p.reading):'読み未確認'} / ${esc(p.gender)}</span></div>
+      <div class="compare-combobox"><input type="search" class="control compare-search" id="${id}" placeholder="名前・ふりがなで検索" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-controls="${id}List" aria-expanded="false" aria-label="比較する選手${order}を名前で検索">
+      <div class="compare-results" id="${id}List" role="listbox" aria-label="比較する選手${order}の候補" hidden></div></div>
+      <p class="compare-hint">入力するたびに候補を絞り込みます</p></div>`;
+  }
+  function compareNameMatches(p,q){
+    return normKana([p.name,...(p.nameAliases||[]),p.formerName||'',p.reading,...(p.readingAliases||[]),p.formerReading||''].join(' ')).includes(q);
+  }
+  function bindComparePickers(){
+    for(const side of ['A','B']){
+      const id='comp'+side;
+      const input=document.getElementById(id);
+      const list=document.getElementById(id+'List');
+      if(!input||!list)continue;
+      let active=-1;
+      const close=()=>{list.hidden=true;input.setAttribute('aria-expanded','false');input.removeAttribute('aria-activedescendant');active=-1;};
+      const buttons=()=>[...list.querySelectorAll('[data-compare-choice]')];
+      const mark=index=>{
+        const items=buttons();
+        active=items.length?Math.max(0,Math.min(items.length-1,index)):-1;
+        items.forEach((el,i)=>{el.classList.toggle('is-active',i===active);el.setAttribute('aria-selected',String(i===active));});
+        if(active>=0){input.setAttribute('aria-activedescendant',items[active].id);items[active].scrollIntoView({block:'nearest'});}
+        else input.removeAttribute('aria-activedescendant');
+      };
+      const show=()=>{
+        const q=normKana(input.value);
+        const all=q?comparePlayersSorted.filter(p=>compareNameMatches(p,q)):comparePlayersSorted;
+        const visible=all.slice(0,q?60:30);
+        const count=q?`${all.length}名が一致${all.length>visible.length?'（先頭60名を表示）':''}`:`五十音順・全${all.length}名（先頭30名を表示）`;
+        list.innerHTML=`<div class="compare-result-count" role="status">${count}</div>`+(visible.length?visible.map((p,i)=>`<button type="button" role="option" tabindex="-1" id="${id}Option${i}" data-compare-choice="${esc(p.id)}" aria-selected="false"><span class="compare-option-name">${esc(p.name)}</span><span class="compare-option-reading">${p.readingStatus==='A'&&p.reading?esc(p.reading):'読み未確認'} / ${esc(p.gender)}</span></button>`).join(''):'<p class="compare-no-results">一致する選手はいません</p>');
+        list.hidden=false;input.setAttribute('aria-expanded','true');active=-1;input.removeAttribute('aria-activedescendant');
+      };
+      const choose=button=>{
+        const id=button?.dataset.compareChoice;
+        if(!id||!findP(id))return;
+        if(side==='A')compA=id;else compB=id;
+        close();render();
+      };
+      input.addEventListener('focus',show);
+      input.addEventListener('input',show);
+      input.addEventListener('keydown',event=>{
+        if(event.isComposing||event.keyCode===229)return;
+        if(event.key==='Escape'){if(!list.hidden){event.preventDefault();close();}return;}
+        if(event.key==='ArrowDown'||event.key==='ArrowUp'){
+          event.preventDefault();if(list.hidden)show();
+          const length=buttons().length;
+          if(length)mark(active<0?(event.key==='ArrowDown'?0:length-1):active+(event.key==='ArrowDown'?1:-1));
+          return;
+        }
+        if(event.key==='Enter'&&!list.hidden){const items=buttons();if(items.length){event.preventDefault();choose(items[active<0?0:active]);}}
+      });
+      // pointerdown selection happens before Safari blurs the input.
+      list.addEventListener('pointerdown',event=>{const target=event.target.closest('[data-compare-choice]');if(target){event.preventDefault();choose(target);}});
+      list.addEventListener('click',event=>{const target=event.target.closest('[data-compare-choice]');if(target)choose(target);});
+      input.addEventListener('blur',()=>window.setTimeout(()=>{if(!list.contains(document.activeElement))close();},160));
+    }
+  }
+  function renderCompare(){const a=findP(compA)||players[0],b=findP(compB)||players[1];const compareFrom=2012;const aa=aggregate(a,compareFrom),bb=aggregate(b,compareFrom);const lines=[['氏名の読み',a.reading||'未確認',b.reading||'未確認'],['区分',a.gender,b.gender],['登録時の代表',a.pref,b.pref],['所属',a.aff,b.aff],['高校（出身・在籍を区別）',educationText(a,'high'),educationText(b,'high')],['大学（出身・在籍を区別）',educationText(a,'univ'),educationText(b,'univ')],['構え',a.stance||'—',b.stance||'—'],['対象期間の出場回数（'+compareFrom+'年〜）',aa.appearances,bb.appearances],['2026年の到達成績（未出場・未収録は—）',(a.isArchive2012||a.isArchive2013||a.isArchive2020||a.isArchive2021||a.isArchive2022||a.isArchive2023||a.isArchive2024||a.isArchive2025)?'—':aa.currentFinish,(b.isArchive2012||b.isArchive2013||b.isArchive2020||b.isArchive2021||b.isArchive2022||b.isArchive2023||b.isArchive2024||b.isArchive2025)?'—':bb.currentFinish],['2026年の勝利（未出場・未収録は—）',(a.isArchive2012||a.isArchive2013||a.isArchive2020||a.isArchive2021||a.isArchive2022||a.isArchive2023||a.isArchive2024||a.isArchive2025)?'—':aa.currentWins,(b.isArchive2012||b.isArchive2013||b.isArchive2020||b.isArchive2021||b.isArchive2022||b.isArchive2023||b.isArchive2024||b.isArchive2025)?'—':bb.currentWins],['対象期間の勝利（'+compareFrom+'年〜）',aa.wins,bb.wins],['面（' + compareFrom + '年〜）',aa.men,bb.men],['小手（' + compareFrom + '年〜）',aa.kote,bb.kote],['胴（' + compareFrom + '年〜）',aa.do,bb.do],['突き（' + compareFrom + '年〜）',aa.tsuki,bb.tsuki],['掲載期間の優勝',aa.titles,bb.titles],['掲載期間の決勝進出',aa.finals,bb.finals]];
     return `${verifiedBanner}${pageHeader('PLAYER COMPARISON','選手比較','男女とも2012年以降の共通期間から2人を比較します。')}
-    <div class="compare-selects"><div class="compare-side"><label class="small muted" for="compA">比較する選手①</label><select class="control" id="compA" style="margin-top:8px">${opts(compA)}</select></div><div class="vs">VS</div><div class="compare-side"><label class="small muted" for="compB">比較する選手②</label><select class="control" id="compB" style="margin-top:8px">${opts(compB)}</select></div></div>
+    <div class="compare-selects">${comparePicker(a,'A')}<div class="vs">VS</div>${comparePicker(b,'B')}</div>
     ${a.id===b.id?'<div class="privacy-banner">同じ選手が選ばれています。別の選手を選ぶと比較できます。</div>':''}<div class="comparison"><div><strong>${pLink(a)}</strong></div><div>比較項目</div><div><strong>${pLink(b)}</strong></div>${lines.map(([label,x,y])=>{const k=label.startsWith('高校（')?'high':label.startsWith('大学（')?'univ':null; return `<div class="${typeof x==='number'?'big':''}">${esc(x)}</div><div>${esc(label)}</div><div class="${typeof y==='number'?'big':''}">${esc(y)}</div>`}).join('')}</div><div class="source-box">比較対象期間は${compareFrom}〜2026年。男女とも2012年以降の連続収録期間。過去の部分記録は加算しません。技B保留の試合は勝敗・本数を維持し、技別の比較集計から除外します。</div>`;}
   function renderUpdates(){return `${pageHeader('CHANGELOG','更新履歴','記録追加・表示改善・調査上の判断の履歴。古い項目は作業当時の記述であり、現在の集計範囲とは異なる場合があります。')}<div class="eyecatch"><strong>現在の集計方針：</strong>男女とも2012〜2026年の15大会を対象に比較。2011年男子は参考記録のみ。延長B77試合・技B2試合は未確認として扱います。</div><div class="pane">${visibleUpdates.map(u=>`<article class="update"><div class="update-date">${esc(u.date)}</div><div><div style="margin-bottom:7px">${badge(u.tag)}</div><h3>${esc(u.title)}</h3><p>${esc(u.desc)}</p></div></article>`).join('')}</div><div class="source-box"><strong>取り込み元：</strong><p>男子：${esc(meta.sourceMen)}</p><p>女子：${esc(meta.sourceWomen)}</p><p>元Excel本体は変更していません。今後Excelのデータを更新した場合は、再変換することでサイト側にも反映します。</p></div>`;}
   const notFound=()=>'<h2 class="heading">ページが見つかりません</h2><a href="#/" class="btn">ホームへ戻る</a>';
@@ -701,7 +768,7 @@
     if(key==='players'){playerCards();document.getElementById('playerSearch').addEventListener('input',e=>{playerQuery=e.target.value;playerCards()});document.getElementById('playerGender').addEventListener('change',e=>{genderFilter=e.target.value;playerCards()});document.getElementById('prefFilter').addEventListener('change',e=>{prefFilter=e.target.value;playerCards()});document.getElementById('kanaIndex').addEventListener('click',e=>{const b=e.target.closest('[data-jump-kana]');if(b&&!b.disabled)jumpDirectory('kana-'+b.dataset.jumpKana);});document.getElementById('playerResults').addEventListener('click',e=>{const sub=e.target.closest('[data-jump-sub]');if(sub&&!sub.disabled)jumpDirectory('kana-sub-'+sub.dataset.jumpSub);if(e.target.closest('[data-back-kana]'))jumpDirectory('kanaIndex')});}
     if(key==='events'){eventRows();document.getElementById('eventSearch').addEventListener('input',e=>{eventQuery=e.target.value;eventRows()});document.getElementById('eventGender').addEventListener('change',e=>{eventGender=e.target.value;eventRows()});document.getElementById('eventYear').addEventListener('change',e=>{eventYear=e.target.value;eventRows()})}
     if(key==='rankings'){rankingRows();document.getElementById('rankMetric').addEventListener('change',e=>{rankMetric=e.target.value;rankingRows()});document.getElementById('rankGender').addEventListener('change',e=>{rankGender=e.target.value;rankingRows()})}
-    if(key==='compare'){document.getElementById('compA').addEventListener('change',e=>{compA=e.target.value;render()});document.getElementById('compB').addEventListener('change',e=>{compB=e.target.value;render()})}
+    if(key==='compare')bindComparePickers();
     if(key==='player'){
       bindCompareButtons();
       app.querySelectorAll('[data-profile-year]').forEach(btn=>btn.addEventListener('click',()=>{
