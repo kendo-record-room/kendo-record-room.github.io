@@ -126,6 +126,25 @@
       do:techCount(p,'胴',startYear),tsuki:techCount(p,'突き',startYear)};
   }
   const profileRow=(label,value)=>`<div>${esc(label)}</div><div>${value?esc(value):'<span class="muted">未登録</span>'}</div>`;
+  // Ages and grades are tournament snapshots, not fixed biographical attributes.
+  // Use only the most recent event with separately verified data for each field.
+  const eventAgeFor=(event,p)=>{
+    const snapshot=eventGrades[event?.id]?.[p.id];
+    if(Number.isInteger(snapshot?.ageAtEvent))return snapshot.ageAtEvent;
+    // Round 139 compatibility: the existing AJKF 2026 roster ages live on players.
+    // Never project this value onto a different tournament or a different year.
+    if((event?.id==='m74'||event?.id==='w65')&&Number.isInteger(p.ageAt2026))return p.ageAt2026;
+    return null;
+  };
+  const profileFactAsOf=event=>{
+    if(!event)return '';
+    if(event.id==='m74'||event.id==='w65')return '2026/11/3';
+    if(event.year===2020&&event.heldYear!==event.year)return '2021/3/14';
+    // A precise day must not be invented when only the event year is recorded.
+    return `${event.year}年大会`;
+  };
+  const profileSnapshotRow=(label,value,event)=>`<div>${esc(label)}</div><div class="profile-fact-cell">${value?`<span class="profile-fact-current">${esc(value)}</span>`:'<span class="muted">未確認</span>'}${value&&event?`<span class="profile-fact-asof">※${esc(profileFactAsOf(event))}時点</span>`:''}</div>`;
+
 
   // Fields awaiting official evidence are kept exclusively in the separate research audit.
   // For current students, the official page supports enrollment, not graduation.
@@ -593,18 +612,22 @@
     const bestRank=Math.max(0,...rs.map(r=>finishRank(r.finish)));
     const bestYears=rs.filter(r=>finishRank(r.finish)===bestRank).map(r=>findE(r.event).year).sort((a,b)=>a-b);
     const bestFoot=bestYears.length?`最高到達年度：${bestYears.map(y=>y+'年').join('・')}`:'掲載成績なし';
-    const grade=latestEvent?eventGradeFor(latestEvent.id,p.id):'';
+    const latestAgeEvent=rs.map(r=>findE(r.event)).find(e=>e&&eventAgeFor(e,p)!==null)||null;
+    const latestAge=latestAgeEvent?eventAgeFor(latestAgeEvent,p):null;
+    const latestGradeEvent=rs.map(r=>findE(r.event)).find(e=>e&&Boolean(eventGradeFor(e.id,p.id)))||null;
+    const grade=latestGradeEvent?eventGradeFor(latestGradeEvent.id,p.id):'';
     const officialAppearance=officialAppearanceAt(p,latestEvent);
     const appearanceText=officialAppearance?`${officialAppearance.count}回（${latestYear}年大会公式）`:'公式出場回数：確認中';
     const latestPref=latestEvent?prefectureFor(latestEvent,p):p.pref;
     const when=latestEvent?`（${eventShortName(latestEvent)}）`:'';
     const rows=rs.map(r=>{
       const e=findE(r.event), ms=profileEventMatches(p,e), yearTitle=e.year===2020?'2020年大会':`${e.year}年度`;
+      const ageAtEvent=eventAgeFor(e,p);
       const key=`year-matches-${e.id}-${p.id}`;
       const notes=profileEventNotes(r,e,ms);
       const table=ms.length?`<div class="table-wrap profile-match-wrap"><table class="profile-match-table"><thead><tr><th>回戦</th><th>対戦相手</th><th>勝敗</th><th>本数・技（本人 − 相手）</th></tr></thead><tbody>${matchRows2026(ms,p.id)}</tbody></table></div>`:'<p class="small muted">個別対戦記録はまだ収録されていません。</p>';
       const source=e.source?sourceLink(e.source,'大会公式記録'):'';
-      return `<tr class="profile-year-row"><td><button type="button" class="profile-year-toggle" data-profile-year="${esc(key)}" aria-expanded="false" aria-controls="${esc(key)}" aria-label="${yearTitle} 第${esc(e.edition.replace(/[^\d]/g,''))}回の全対戦結果を開く"><span>${esc(yearTitle)}</span><strong>${esc(e.edition)}</strong><span class="profile-year-arrow" aria-hidden="true">▼</span></button>${e.heldYear!==e.year?'<div class="profile-year-foot">2021年3月14日開催（延期開催）</div>':''}</td><td>${eventGradeDisplay(e.id,p.id)}</td><td class="result ${r.finish==='優勝'?'win':''}">${esc(r.finish)}</td><td class="profile-row-note">${notes}</td></tr><tr class="profile-year-detail" id="${esc(key)}" hidden><td colspan="4"><div class="profile-inline-panel"><div class="profile-inline-head"><strong>${esc(e.year)}年・${esc(e.edition)} 全対戦結果（${ms.length}試合）</strong><span class="small muted">${source}</span></div>${table}</div></td></tr>`;
+      return `<tr class="profile-year-row"><td><button type="button" class="profile-year-toggle" data-profile-year="${esc(key)}" aria-expanded="false" aria-controls="${esc(key)}" aria-label="${yearTitle} 第${esc(e.edition.replace(/[^\d]/g,''))}回の全対戦結果を開く"><span>${esc(yearTitle)}</span><strong>${esc(e.edition)}</strong><span class="profile-year-arrow" aria-hidden="true">▼</span></button>${e.heldYear!==e.year?'<div class="profile-year-foot">2021年3月14日開催（延期開催）</div>':''}</td><td>${ageAtEvent!==null?`<span class="profile-event-age">${esc(ageAtEvent)}歳</span><span class="profile-event-grade">${eventGradeDisplay(e.id,p.id)}</span>`:eventGradeDisplay(e.id,p.id)}</td><td class="result ${r.finish==='優勝'?'win':''}">${esc(r.finish)}</td><td class="profile-row-note">${notes}</td></tr><tr class="profile-year-detail" id="${esc(key)}" hidden><td colspan="4"><div class="profile-inline-panel"><div class="profile-inline-head"><strong>${esc(e.year)}年・${esc(e.edition)} 全対戦結果（${ms.length}試合）</strong><span class="small muted">${source}</span></div>${table}</div></td></tr>`;
     }).join('');
     return `<div class="breadcrumb"><a href="#/players">選手名鑑</a> › ${esc(p.name)}</div>
     <div class="detail-hero"><div class="detail-main"><div class="avatar ${p.gender==='女子'?'f':''}">${esc(p.name.slice(-1))}</div><div><p class="eyebrow" style="margin:0">PLAYER PROFILE</p><h2>${esc(p.name)}</h2><p class="detail-reading">${p.reading?esc(p.reading):'読み：確認中'}</p>${p.formerName?`<p class="detail-former">過去の登録名：${esc(displayNameForRaw(p.formerName))}${p.formerReading?`（${esc(p.formerReading)}）`:''}</p>`:''}<div class="detail-pills">${badge(p.gender)} ${badge(latestPref||'代表未確認')} ${badge(p.stance||'構え未登録')}</div></div></div><button class="btn secondary" data-compare-add="${p.id}">⇄ この選手を比較に追加</button></div>
@@ -614,8 +637,8 @@
       ${statCard(titleName+'最高成績',finishLabel(bestRank),'',bestFoot)}
     </div>
     <div class="detail-grid profile-grid">
-      <section class="pane wide"><h3 class="section-title">基本プロフィール</h3><div class="definition">${profileRow('氏名の読み',p.reading||'未確認')}${p.formerName?profileRow('過去の登録名・その読み',displayNameForRaw(p.formerName)+(p.formerReading?'（'+p.formerReading+'）':'')):''}${profileRow('所属',(latestPref||'未確認')+when)}${profileRow('職業・勤務先',p.aff?`${p.aff}${p.affAsOfYear?`（${p.affAsOfYear}年大会時点）`:''}`:'')}${profileRow('出場回数',appearanceText)}${profileRow(latestYear?'年齢（'+latestYear+'年資料）':'年齢',latestYear===2026&&p.ageAt2026?`${p.ageAt2026}歳`:'')}${educationProfileRow(p,'high')}${educationProfileRow(p,'univ')}${profileRow('称号・段位',grade?`${grade}${when}`:`未確認${when}`)}${profileRow('構え',p.stance)}${profileRow('得意技',p.skill)}</div>${latestEvent?`<p class="small muted profile-last-source">最終出場大会：${eLink(latestEvent)}${officialAppearance?` ／ <a class="data-link" href="${esc(officialAppearance.source)}" target="_blank" rel="noopener noreferrer">出場回数の公式根拠 ↗</a>`:''}</p>`:''}</section>
-      <section class="pane wide profile-history" style="padding:0"><div class="pane-pad"><h3 class="section-title">${esc(titleName)}・年度別成績</h3><p class="small muted">年度を押すと、その大会での全対戦結果が開きます。当時の段位は公式登録で確認できた場合のみ表示します。</p></div><div class="table-wrap profile-history-wrap"><table class="profile-history-table"><thead><tr><th>大会年度・回次</th><th>当時の称号・段位</th><th>到達成績</th><th>備考</th></tr></thead><tbody>${rows}</tbody></table></div></section>
+      <section class="pane wide"><h3 class="section-title">基本プロフィール</h3><div class="definition">${profileRow('氏名の読み',p.reading||'未確認')}${p.formerName?profileRow('過去の登録名・その読み',displayNameForRaw(p.formerName)+(p.formerReading?'（'+p.formerReading+'）':'')):''}${profileRow('所属',(latestPref||'未確認')+when)}${profileRow('職業・勤務先',p.aff?`${p.aff}${p.affAsOfYear?`（${p.affAsOfYear}年大会時点）`:''}`:'')}${profileRow('出場回数',appearanceText)}${profileSnapshotRow('年齢',latestAge!==null?`${latestAge}歳`:'',latestAgeEvent)}${educationProfileRow(p,'high')}${educationProfileRow(p,'univ')}${profileSnapshotRow('称号・段位',grade,latestGradeEvent)}${profileRow('構え',p.stance)}${profileRow('得意技',p.skill)}</div>${latestEvent?`<p class="small muted profile-last-source">最終出場大会：${eLink(latestEvent)}${officialAppearance?` ／ <a class="data-link" href="${esc(officialAppearance.source)}" target="_blank" rel="noopener noreferrer">出場回数の公式根拠 ↗</a>`:''}</p>`:''}</section>
+      <section class="pane wide profile-history" style="padding:0"><div class="pane-pad"><h3 class="section-title">${esc(titleName)}・年度別成績</h3><p class="small muted">年度を押すと、その大会での全対戦結果が開きます。当時の段位は公式登録で確認できた場合のみ表示します。</p></div><div class="table-wrap profile-history-wrap"><table class="profile-history-table"><thead><tr><th>大会年度・回次</th><th>当時の年齢・称号段位</th><th>到達成績</th><th>備考</th></tr></thead><tbody>${rows}</tbody></table></div></section>
       ${renderTechniqueSummary(p)}
       ${renderWkcPlayerHistory(p)}
       ${renderWkcTeamPlayerHistory(p)}

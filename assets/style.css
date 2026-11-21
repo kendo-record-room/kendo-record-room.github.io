@@ -340,3 +340,9 @@ body.modal-open{overflow:hidden}
 
 /* Round 84: 2015 official WKC roster and limited-result scope */
 .wkc-roster-panel{margin:22px 0}.wkc-roster-panel .pane-pad{padding:18px}.wkc-roster-panel p{margin:5px 0 12px}.wkc-roster-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.wkc-roster-grid h4{font-size:14px;margin:4px 0 10px}.wkc-roster-grid ul{margin:0;padding:0;list-style:none}.wkc-roster-grid li{padding:6px 2px;border-bottom:1px solid var(--line);font-size:13px}.wkc-roster-mark{display:inline-block;margin-left:6px;padding:1px 5px;background:#e8f2ee;border-radius:4px;color:#366454;font-size:10px;font-weight:750}@media(max-width:760px){.wkc-roster-grid{grid-template-columns:1fr}.wkc-roster-panel .pane-pad{padding:14px}.wkc-roster-grid li{font-size:12px}}
+
+/* Round 139: keep each time-sensitive profile value and its as-of note in one value cell. */
+.profile-fact-cell .profile-fact-current{display:block;font-weight:650;}
+.profile-fact-cell .profile-fact-asof{display:block;margin-top:4px;color:var(--muted);font-size:11px;line-height:1.5;font-weight:400;}
+.profile-event-age{display:block;font-weight:650;}
+.profile-event-grade{display:block;margin-top:3px;color:var(--muted);font-size:12px;}
