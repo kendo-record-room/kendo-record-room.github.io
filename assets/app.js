@@ -959,17 +959,57 @@
     const rankPanel=`<section class="pane" style="padding:20px"><h3 class="section-title">2026年AOKC 日本代表ランキング（試験版）</h3><p class="small muted">確認済みの日本選手の実績のみ。国別団体勝利は加算せず、団体は本人実戦を対象とします。不戦勝は別保存し、このランキングの勝利数・試合数・取得本数には含めません。値0は非表示。</p><label for="aokcRankMode">集計区分</label> <select id="aokcRankMode" aria-label="ランキング集計区分"><option value="individual">個人のみ</option><option value="all" selected>個人＋団体</option><option value="team">団体のみ</option></select> <label for="aokcRankMetric">指標</label> <select id="aokcRankMetric" aria-label="ランキング指標"><option value="wins">実戦勝利数</option><option value="points">実際の取得本数</option><option value="matches">試合数</option></select><div id="aokcRankRows" class="detail-grid">${aokcRankingRows()}</div></section>`;
     return `${verifiedBanner}${title}<p class="lead">2026年5月30日〜31日 ／ 東京武道館（東京都足立区）</p><div class="stats">${statCard('入賞・敢闘選手',d.individualMedals.length+d.teamMedals.length+d.teamAwards.length,'枠','個人32、団体順位8、団体敢闘選手8')}${statCard('日本選手団登録',d.japanRoster.length,'名','男子9・女子9。実戦とは別管理')}${statCard('個人戦の記録枠',d.individualMatches.length,'件','日本関連19記録枠（実戦18・不戦勝1）＋外国選手間1実戦')}${statCard('団体の国別対戦',(d.teamCountryMatches||[]).length,'試合','日本の男女各4試合')}${statCard('団体本人実戦',d.teamBouts.filter(b=>b.isActualBout).length,'件','別途不戦勝2枠・男女決勝の引き分け2件')}</div><div class="source-box"><strong>公式根拠</strong><p>${src}</p><p class="small muted">大会公式Tonamel対戦詳細を照合。日本選手の個人戦は18実戦＋高橋萌子の2回戦不戦勝1枠。高橋の○・○は大会公式配信での確認により不戦勝と判明し、実戦取得本数には加算しません。団体戦は男女各4国別対戦、40オーダー枠から38本人実戦と2不戦勝を分離。技のない得点表示○・○を実際の打突には加算しません。全日本選手権・WKCと大会の通算ランキングは混同しません。敢闘賞は審判主任の選考によるためベスト8敗者とは同一視しません。</p></div>${rankPanel}<div class="detail-grid">${indiv}${team}${roster}</div>${countryMatchPanel}<section class="pane" style="padding:20px"><h3 class="section-title">日本代表の団体・本人実戦／不戦勝の詳細</h3><div class="table-wrap"><table><thead><tr><th>部門</th><th>回戦</th><th>位置</th><th>日本選手</th><th>相手</th><th>勝敗</th><th>技・本数</th><th>根拠</th></tr></thead><tbody>${teams}</tbody></table></div></section><section class="pane" style="padding:20px"><h3 class="section-title">個人戦の実戦・不戦勝記録（公式確認済み）</h3><div class="table-wrap"><table><thead><tr><th>部門</th><th>回戦</th><th>対戦</th><th>勝者</th><th>技・本数</th><th>根拠</th></tr></thead><tbody>${bouts}</tbody></table></div></section>`;
   }
+  // AOKC player histories use the same year-by-year accordion / match table as WKC.
+  // Individual matches, actual team bouts, and walkovers remain separate records.
+  const aokcRoundSort={'1回戦':1,'2回戦':2,'3回戦':3,'4回戦':4,'準決勝':5,'決勝':6};
+  const aokcRecordSource=(url,label='大会公式Tonamel')=>url?`<a class="data-link" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${label} ↗</a>`:'';
+  const aokcScoreCell=(myTech,oppTech,walkover=false)=>walkover
+    ?'<strong>—</strong><div class="tiny muted">実戦0本 ／ 公式2本</div>'
+    :`<strong>${myTech.length} - ${oppTech.length}</strong><div class="tiny muted">${esc(myTech.join('・')||'—')} / ${esc(oppTech.join('・')||'—')}</div>`;
+  const aokcIndividualPlayerRow=(m,p)=>{
+    const isA=m.playerAId===p.id,oppName=isA?m.playerB:m.playerA,oppId=isA?m.playerBId:m.playerAId;
+    const myTech=isA?(m.playerATech||[]):(m.playerBTech||[]),oppTech=isA?(m.playerBTech||[]):(m.playerATech||[]);
+    const won=m.winnerId===p.id;
+    const res=m.walkover?'不戦勝':won?'勝':'敗';
+    const penaltyMe=won?Number(m.winnerPenaltyCount||0):Number(m.loserPenaltyCount||0);
+    const penaltyThem=won?Number(m.loserPenaltyCount||0):Number(m.winnerPenaltyCount||0);
+    const remarks=[m.walkover?'実戦なし':m.overtimeStatus==='あり'?'延長':m.overtimeStatus==='なし'?'':'延長未確認'].filter(Boolean);
+    if(penaltyMe)remarks.push(`本人反則${penaltyMe}回`);
+    if(penaltyThem)remarks.push(`相手反則${penaltyThem}回`);
+    const opp=oppId&&findP(oppId)?pLink(findP(oppId)):`<strong>${esc(oppName||'相手未確認')}</strong>`;
+    return `<tr><td>${esc(m.round)}</td><td>${opp}</td><td class="${won?'result win':'result'}">${res}</td><td>${aokcScoreCell(myTech,oppTech,Boolean(m.walkover))}</td><td>${esc(remarks.join('・'))}<div class="tiny">${aokcRecordSource(m.tonamelSource||m.source,'記録')}${m.walkover&&m.officialVideoEvidence?` / ${aokcRecordSource(m.officialVideoEvidence,'配信')}`:''}</div></td></tr>`;
+  };
+  const aokcTeamPlayerRow=b=>{
+    const teamWin=b.result==='勝ち',res=b.walkover?'不戦勝':teamWin?'勝':b.result==='引き分け'?'引き分け':esc(b.result);
+    const notes=[b.walkover?'実戦なし':b.overtimeStatus==='あり'?'延長':b.overtimeStatus==='なし'?'':'延長未確認'].filter(Boolean);
+    if(b.opponentPenaltyCount)notes.push(`相手反則${b.opponentPenaltyCount}回`);
+    return `<tr><td>${esc(b.teamRound)}<div class="tiny muted">${esc(b.position)}</div></td><td><strong>${esc(b.opponent||'相手不在')}</strong><div class="tiny muted">${esc(b.opponentCountry||'')}</div></td><td class="${teamWin?'result win':'result'}">${res}</td><td>${aokcScoreCell(b.playerTech||[],b.opponentTech||[],Boolean(b.walkover))}</td><td>${esc(notes.join('・'))}<div class="tiny">${aokcRecordSource(b.source,'記録')}</div></td></tr>`;
+  };
+  const aokcPlayerTable=(rows)=>`<div class="table-wrap"><table><thead><tr><th>回戦</th><th>対戦相手</th><th>勝敗</th><th>本数・取得技（本人 / 相手）</th><th>備考</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   function renderAokcPlayerHistory(p){
     const roster=aokcRecords.japanRoster.find(r=>r.playerId===p.id);
     const prizes=aokcRecords.individualMedals.filter(r=>r.playerId===p.id);
-    const bouts=aokcRecords.individualMatches.filter(m=>m.playerAId===p.id||m.playerBId===p.id);
-    const team=aokcRecords.teamBouts.filter(m=>m.playerId===p.id);
+    const bouts=aokcRecords.individualMatches.filter(m=>m.playerAId===p.id||m.playerBId===p.id)
+      .sort((a,b)=>a.year-b.year||(aokcRoundSort[a.round]||99)-(aokcRoundSort[b.round]||99));
+    const team=aokcRecords.teamBouts.filter(m=>m.playerId===p.id)
+      .sort((a,b)=>a.year-b.year||(aokcRoundSort[a.teamRound]||99)-(aokcRoundSort[b.teamRound]||99)||a.order-b.order);
     if(!roster&&!prizes.length&&!bouts.length&&!team.length)return '';
-    const prize=prizes.map(r=>`${esc(r.category)} ${esc(r.rank)}`).join(' ／ ');
-    const boutText=bouts.map(m=>{const isA=m.playerAId===p.id;const oppId=isA?m.playerBId:m.playerAId;const opp=oppId&&findP(oppId)?pLink(findP(oppId)):esc(isA?m.playerB:m.playerA);const ext=m.walkover?'不戦勝・実戦なし':m.overtimeStatus==='あり'?'延長あり':m.overtimeStatus==='なし'?'延長なし':'延長未確認';return `${esc(m.round)}：${opp}に${m.walkover?'不戦勝':m.winnerId===p.id?'勝':'敗'}（${esc(m.scoreVerified||'本数不明')}・${ext}） <a class="data-link" href="${esc(m.tonamelSource||m.source)}" target="_blank" rel="noopener noreferrer">公式記録 ↗</a>`;}).join(' ／ ');
-    const tc=team.filter(x=>x.result==='勝ち').length,draws=team.filter(x=>x.result==='引き分け').length,walks=team.filter(x=>x.walkover).length;
-    const teamText=team.map(x=>`${esc(x.teamRound)}${esc(x.position)}：対${esc(x.opponent||'相手不在')} ${esc(x.result)}${x.walkover?'（不戦勝／実戦なし）':`（${esc(x.playerTech.join('・')||'取得なし')}）`}`).join(' ／ ');
-    return `<section class="pane wide history-pane"><h3 class="section-title">アジア・オセアニア剣道選手権（AOKC）</h3><p>2026年・第1回${roster?' ／ 日本選手団登録A確認':''}</p>${prize?`<p><strong>個人戦入賞：</strong>${prize}</p>`:''}${bouts.length?`<p><strong>個人戦の実戦・不戦勝記録：</strong>${boutText}</p>`:''}${team.length?`<p><strong>団体本人実戦：</strong>${team.filter(x=>x.isActualBout).length}試合・${tc}勝${draws?`・${draws}分`:''}${walks?`／不戦勝${walks}枠（実戦外）`:''}</p><p class="small">${teamText}</p>`:''}<p class="small muted">日本代表登録・個人戦・団体本人実戦・不戦勝は別管理。AOKCは全日本選手権通算成績には含めません。 <a class="data-link" href="#/aokc">大会の全記録へ</a></p></section>`;
+    const src=aokcRecords.sources[2026];
+    const commonSource=`${aokcRecordSource(src.officialResults,'大会公式結果')} / ${aokcRecordSource(src.officialRoster,'日本代表名簿')}`;
+    const overview=`<p class="small muted">2026年・第1回${roster?' ／ 日本選手団登録A確認':''}。日本代表登録、個人戦出場、団体本人実戦、不戦勝は区別して管理します。全日本選手権の通算成績には加算しません。</p>`;
+    const indivWins=bouts.filter(m=>m.winnerId===p.id&&!m.walkover).length;
+    const indivLoss=bouts.filter(m=>m.winnerId!==p.id&&!m.walkover).length;
+    const indivWalks=bouts.filter(m=>m.walkover).length;
+    const indivPrize=prizes.map(r=>`${esc(r.category)}・${esc(r.rank)}`).join(' ／ ');
+    const indivSummary=`2026年・第1回 ${indivPrize?indivPrize+' ／ ':''}${indivWins}勝${indivLoss}敗${indivWalks?' ／ 不戦勝'+indivWalks+'件':''} <span class="history-count">${bouts.filter(m=>!m.walkover).length}実戦${indivWalks?'・不戦勝'+indivWalks+'枠':''}</span>`;
+    const indivSection=(bouts.length||prizes.length)?`<section class="pane wide history-pane"><h3 class="section-title">アジア・オセアニア剣道選手権（AOKC）・個人戦</h3><p class="small muted">WKCと同じ試合別一覧。公式確認済みの結果・取得技だけ表示。不戦勝は実戦勝利や実戦取得本数には含めません。</p><details class="history-group" open><summary>${indivSummary}</summary>${bouts.length?aokcPlayerTable(bouts.map(m=>aokcIndividualPlayerRow(m,p)).join('')):'<p class="small muted pane-pad">入賞記録は確認済みですが、試合別の対戦記録は未収録です。</p>'}<div class="pane-pad small">${commonSource} / <a class="data-link" href="#/aokc">AOKC大会一覧へ</a></div></details></section>`:'';
+    const actual=team.filter(b=>b.isActualBout),teamWins=actual.filter(b=>b.result==='勝ち').length;
+    const teamDraws=actual.filter(b=>b.result==='引き分け').length,teamLosses=actual.filter(b=>b.result==='負け').length;
+    const teamWalks=team.filter(b=>b.walkover).length;
+    const teamSummary=`2026年・第1回 ${teamWins}勝${teamLosses}敗${teamDraws?'・'+teamDraws+'分':''}${teamWalks?' ／ 不戦勝'+teamWalks+'枠':''} <span class="history-count">${actual.length}実戦${teamWalks?'・不戦勝'+teamWalks+'枠':''}</span>`;
+    const teamSection=team.length?`<section class="pane wide history-pane"><h3 class="section-title">アジア・オセアニア剣道選手権（AOKC）・団体本人実戦</h3><p class="small muted">国別の勝敗ではなく、本人が出場した試合の成績です。不戦勝はオーダー登録・公式勝利相当として別枠表示。引き分けも独立して記録しています。</p><details class="history-group" open><summary>${teamSummary}</summary>${aokcPlayerTable(team.map(aokcTeamPlayerRow).join(''))}<div class="pane-pad small">${commonSource} / <a class="data-link" href="#/aokc">AOKC大会一覧へ</a></div></details></section>`:'';
+    const rosterOnly=roster&&!indivSection&&!teamSection?`<section class="pane wide history-pane"><h3 class="section-title">アジア・オセアニア剣道選手権（AOKC）</h3>${overview}<p class="small muted">日本選手団の登録のみ確認済みです。本人の出場試合は確認されていません。</p><p class="small">${commonSource} / <a class="data-link" href="#/aokc">AOKC大会一覧へ</a></p></section>`:'';
+    return `${indivSection}${teamSection}${rosterOnly}`;
   }
   function renderAokcCompareBlock(a,b){
     const da=aokcRecords,rs=[a,b].map(p=>({roster:da.japanRoster.find(x=>x.playerId===p.id),prizes:da.individualMedals.filter(x=>x.playerId===p.id),individual:da.individualMatches.filter(m=>m.playerAId===p.id||m.playerBId===p.id),team:da.teamBouts.filter(m=>m.playerId===p.id)}));
