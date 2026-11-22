@@ -346,3 +346,8 @@ body.modal-open{overflow:hidden}
 .profile-fact-cell .profile-fact-asof{display:block;margin-top:4px;color:var(--muted);font-size:11px;line-height:1.5;font-weight:400;}
 .profile-event-age{display:block;font-weight:650;}
 .profile-event-grade{display:block;margin-top:3px;color:var(--muted);font-size:12px;}
+/* Round 142: tournament-specific prefectural registration/representation snapshots. */
+.profile-pref-entry+.profile-pref-entry{margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+.profile-pref-entry .profile-fact-current{display:block;font-weight:650}
+.profile-pref-entry .profile-fact-asof{display:block;margin-top:3px;color:var(--muted);font-size:11px;line-height:1.45}
+.profile-pref-caution{display:block;margin-top:10px;color:var(--muted);font-size:11px;line-height:1.5}

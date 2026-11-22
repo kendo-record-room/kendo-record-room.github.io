@@ -144,6 +144,31 @@
     return `${event.year}年大会`;
   };
   const profileSnapshotRow=(label,value,event)=>`<div>${esc(label)}</div><div class="profile-fact-cell">${value?`<span class="profile-fact-current">${esc(value)}</span>`:'<span class="muted">未確認</span>'}${value&&event?`<span class="profile-fact-asof">※${esc(profileFactAsOf(event))}時点</span>`:''}</div>`;
+  // Tournament-specific prefectures. A prefectural-team entry is the team represented,
+  // not proof of registration with a second prefectural kendo federation.
+  // Never link unresolved same-name candidates to a known profile.
+  const profileRegistrationRow=(p,latestEvent)=>{
+    const snapshots=[];
+    if(latestEvent){
+      const pref=prefectureFor(latestEvent,p);
+      if(pref && pref!=='未確認')snapshots.push({pref,note:`※${String(latestEvent.year).slice(-2)}全日本`,date:latestEvent.id==='m74'||latestEvent.id==='w65'?'2026-11-03':latestEvent.year===2020?'2021-03-14':`${latestEvent.year}-01-01`,type:'championship'});
+    }
+    for(const r of (typeof todo2026==='undefined'?[]:todo2026.roster)){
+      if(r.playerId!==p.id || !['A-confirmed-existing','A-new-2026-registration'].includes(r.identityStatus))continue;
+      snapshots.push({pref:todoPrefFull(r.prefecture),note:`※${String(r.eventDate.slice(2,4))}都道府県対抗`,date:r.eventDate,type:'team'});
+    }
+    if(!snapshots.length && p.pref && p.pref!=='未確認')snapshots.push({pref:p.pref,note:'',date:'',type:'unknown'});
+    snapshots.sort((a,b)=>b.date.localeCompare(a.date));
+    const byPref=new Map();
+    for(const snap of snapshots){
+      const notes=byPref.get(snap.pref)||[];
+      if(snap.note && !notes.includes(snap.note))notes.push(snap.note);
+      byPref.set(snap.pref,notes);
+    }
+    const content=[...byPref].map(([pref,notes])=>`<div class="profile-pref-entry"><span class="profile-fact-current">${esc(pref)}</span>${notes.map(note=>`<span class="profile-fact-asof">${esc(note)}</span>`).join('')}</div>`).join('');
+    const caution=snapshots.some(s=>s.type==='team')?'<span class="profile-pref-caution">都道府県対抗は大会の代表県であり、剣連への二重登録を示すものではありません。</span>':'';
+    return `<div>登録</div><div class="profile-fact-cell profile-pref-cell">${content||'<span class="muted">未確認</span>'}${caution}</div>`;
+  };
 
 
   // Fields awaiting official evidence are kept exclusively in the separate research audit.
@@ -619,7 +644,6 @@
     const officialAppearance=officialAppearanceAt(p,latestEvent);
     const appearanceText=officialAppearance?`${officialAppearance.count}回（${latestYear}年大会公式）`:'公式出場回数：確認中';
     const latestPref=latestEvent?prefectureFor(latestEvent,p):p.pref;
-    const when=latestEvent?`（${eventShortName(latestEvent)}）`:'';
     const rows=rs.map(r=>{
       const e=findE(r.event), ms=profileEventMatches(p,e), yearTitle=e.year===2020?'2020年大会':`${e.year}年度`;
       const ageAtEvent=eventAgeFor(e,p);
@@ -637,7 +661,7 @@
       ${statCard(titleName+'最高成績',finishLabel(bestRank),'',bestFoot)}
     </div>
     <div class="detail-grid profile-grid">
-      <section class="pane wide"><h3 class="section-title">基本プロフィール</h3><div class="definition">${profileRow('氏名の読み',p.reading||'未確認')}${p.formerName?profileRow('過去の登録名・その読み',displayNameForRaw(p.formerName)+(p.formerReading?'（'+p.formerReading+'）':'')):''}${profileRow('所属',(latestPref||'未確認')+when)}${profileRow('職業・勤務先',p.aff?`${p.aff}${p.affAsOfYear?`（${p.affAsOfYear}年大会時点）`:''}`:'')}${profileRow('出場回数',appearanceText)}${profileSnapshotRow('年齢',latestAge!==null?`${latestAge}歳`:'',latestAgeEvent)}${educationProfileRow(p,'high')}${educationProfileRow(p,'univ')}${profileSnapshotRow('称号・段位',grade,latestGradeEvent)}${profileRow('構え',p.stance)}${profileRow('得意技',p.skill)}</div>${latestEvent?`<p class="small muted profile-last-source">最終出場大会：${eLink(latestEvent)}${officialAppearance?` ／ <a class="data-link" href="${esc(officialAppearance.source)}" target="_blank" rel="noopener noreferrer">出場回数の公式根拠 ↗</a>`:''}</p>`:''}</section>
+      <section class="pane wide"><h3 class="section-title">基本プロフィール</h3><div class="definition">${profileRow('氏名の読み',p.reading||'未確認')}${p.formerName?profileRow('過去の登録名・その読み',displayNameForRaw(p.formerName)+(p.formerReading?'（'+p.formerReading+'）':'')):''}${profileRegistrationRow(p,latestEvent)}${profileRow('職業・勤務先',p.aff?`${p.aff}${p.affAsOfYear?`（${p.affAsOfYear}年大会時点）`:''}`:'')}${profileRow('出場回数',appearanceText)}${profileSnapshotRow('年齢',latestAge!==null?`${latestAge}歳`:'',latestAgeEvent)}${educationProfileRow(p,'high')}${educationProfileRow(p,'univ')}${profileSnapshotRow('称号・段位',grade,latestGradeEvent)}${profileRow('構え',p.stance)}${profileRow('得意技',p.skill)}</div>${latestEvent?`<p class="small muted profile-last-source">最終出場大会：${eLink(latestEvent)}${officialAppearance?` ／ <a class="data-link" href="${esc(officialAppearance.source)}" target="_blank" rel="noopener noreferrer">出場回数の公式根拠 ↗</a>`:''}</p>`:''}</section>
       <section class="pane wide profile-history" style="padding:0"><div class="pane-pad"><h3 class="section-title">${esc(titleName)}・年度別成績</h3><p class="small muted">年度を押すと、その大会での全対戦結果が開きます。当時の段位は公式登録で確認できた場合のみ表示します。</p></div><div class="table-wrap profile-history-wrap"><table class="profile-history-table"><thead><tr><th>大会年度・回次</th><th>当時の年齢・称号段位</th><th>到達成績</th><th>備考</th></tr></thead><tbody>${rows}</tbody></table></div></section>
       ${renderTechniqueSummary(p)}
       ${renderWkcPlayerHistory(p)}
