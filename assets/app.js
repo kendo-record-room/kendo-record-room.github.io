@@ -795,6 +795,7 @@
     const certifiedYears=multi?p.tozaiYears.join('・')+'年':p.tozaiYear+'年';
     const ownMatches=multi?p.tozaiRecordCount:1;
     const tournamentList=multi?p.tozaiRosters.map(t=>t.year+'年・第'+(t.year-1954)+'回').join('、'):p.tozaiYear+'年・第'+(p.tozaiYear-1954)+'回';
+    const ageInfo=multi?p.tozaiRosters.filter(t=>Number.isInteger(t.age)).map(t=>t.year+'年'+t.age+'歳').join('・'):'';
     const officialRosters=multi?p.tozaiRosters.map(t=>`<a class="data-link" href="${esc(t.rosterSource)}" target="_blank" rel="noopener noreferrer">${t.year}年公式組合せ ↗</a>`).join('　'):'';
     const firstOfficialMatch=multi?p.tozaiRosters.find(t=>/^https:\/\/(?:www\.)?kendo\.or\.jp\/competition\//.test(t.matchSource||''))?.matchSource:'';
     const url=/^https:\/\/(?:www\.)?kendo\.or\.jp\/competition\//.test(p.source||'')?p.source:(firstOfficialMatch||'');
@@ -805,7 +806,7 @@
       <p class="detail-reading">読み：公式資料未確認</p><div class="detail-pills">${badge(p.gender)} ${badge('東西対抗・試合記録のみ')}</div></div></div></div>
       <div class="stats profile-stats">${statCard('東西対抗・本人試合',ownMatches,'試合',multi?('本人照合済み'+p.tozaiYears.length+'年度'):'この年度の公式確認分')}${statCard('確認された大会年度',multi?p.tozaiYears.join('･'):p.tozaiYear,'年',multi?(p.tozaiYears.join('・')+'年のみ連結'):'別年度の同姓同名は未統合')}${statCard('全日本選手権の戦績','未収録','','出場なしの意味ではありません')}</div>
       <div class="detail-grid profile-grid"><section class="pane wide"><h3 class="section-title">基本プロフィール（公式記録で確認できる範囲）</h3>
-      <div class="definition">${profileRow('氏名',p.name)}${profileRow('氏名の読み','未確認')}${profileRow('区分',p.gender)}${profileRow('確認できた大会',tournamentList+' 全日本東西対抗剣道大会')}${profileRow('所属・代表都道府県',multi?p.pref+'（'+p.tozaiYears.join('・')+'年公式名簿）':'未確認')}${profileRow('年齢・段位','未確認')}${profileRow('出身校','未確認')}</div>
+      <div class="definition">${profileRow('氏名',p.name)}${profileRow('氏名の読み','未確認')}${profileRow('区分',p.gender)}${profileRow('確認できた大会',tournamentList+' 全日本東西対抗剣道大会')}${profileRow('所属・代表都道府県',multi?p.pref+'（'+p.tozaiYears.join('・')+'年公式名簿）':'未確認')}${profileRow('年齢・段位',ageInfo?ageInfo+'（段位未確認）':'未確認')}${profileRow('出身校','未確認')}</div>
       <p class="small muted" style="margin-top:15px">出典：${source}${multi?`<div class="small muted">人物照合根拠：${officialRosters}</div>`:''}</p></section></div>
       <p class="footnote">${multi?'※このプロフィールは'+p.tozaiYears.join('・')+'年の全剣連公式名簿により同県・年齢推移を確認した'+p.tozaiYears.length+'大会に限定します。その他年度の同姓同名は未統合。全日本選手権のランキング・比較には加算しません。':`※このプロフィールは${esc(p.tozaiYear)}年大会の本人実戦１件だけを根拠に追加しました。他大会の出場、複数年度間の同一人物性、年齢・所属・段位は未照合。全日本選手権のランキング・比較には加算しません。`}</p>`;
   }
