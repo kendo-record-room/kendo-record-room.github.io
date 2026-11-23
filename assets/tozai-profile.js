@@ -34,6 +34,8 @@
     const losses=rows.filter(({bout,own})=>bout.winner&&bout.winner!==own.side).length;
     const draws=rows.filter(({bout})=>String(bout.outcome||'').includes('引')).length;
     const unknown=rows.length-wins-losses-draws;
+    const newProfile=Array.isArray(window.KENDO_TOZAI_NEW_PLAYERS?.players) && window.KENDO_TOZAI_NEW_PLAYERS.players.some(p=>p.id===id);
+    const sourceScope=newProfile?'この年度の全剣連公式大会記録から確認できた本人実戦のみを掲載。別年度の同姓同名は統合していません。':'同年の独立した公式大会記録と人物照合できた試合のみ掲載。';
     const body=rows.map(({r,bout,own,opp,oppId})=>{
       const result=bout.winner?bout.winner===own.side?'勝':'負':String(bout.outcome||'').includes('引')?'引き分け':'勝敗未確認';
       const ext=bout.extension===true?'延長あり':bout.extension===false?'延長なし':'延長未確認';
@@ -42,7 +44,7 @@
       return `<tr><td><a class="data-link" href="${esc(link)}">${r.year}年・第${r.year-1954}回</a><div class="small muted">${esc(own.side)} / ${esc(bout.position||'位置未確認')}</div></td><td>${playerLink(opp.name,oppId)}</td><td>${esc(result)}</td><td>${score(own,opp)}<div class="small muted">${esc(ext)}${award}</div></td><td><a class="data-link" href="${esc(link)}">対戦詳細</a>${sourceOk(bout.source)?`<div class="small"><a class="data-link" href="${esc(bout.source)}" target="_blank" rel="noopener noreferrer">公式資料 ↗</a></div>`:''}</td></tr>`;
     }).join('');
     const section=document.createElement('section');section.className='pane wide tozai-linked-history';
-    section.innerHTML=`<div class="pane-pad"><h3 class="section-title">全日本東西対抗剣道大会・本人対戦記録</h3><p class="small muted">公式資料で対戦者が確認され、同年の独立した公式大会記録と人物照合できた試合のみ掲載。${rows.length}試合（${wins}勝${losses}敗${draws}分${unknown?'・勝敗未確認'+unknown+'件':''}）。未収録試合や紐付け保留は出場なしを意味しません。全日本選手権の通算成績・ランキングとは分離しています。</p></div><div class="table-wrap"><table class="profile-match-table"><thead><tr><th>大会年度・東西</th><th>対戦相手</th><th>勝敗</th><th>取得本数・技（本人 / 相手）</th><th>根拠</th></tr></thead><tbody>${body}</tbody></table></div>`;
+    section.innerHTML=`<div class="pane-pad"><h3 class="section-title">全日本東西対抗剣道大会・本人対戦記録</h3><p class="small muted">公式資料で対戦者が確認されています。${sourceScope}${rows.length}試合（${wins}勝${losses}敗${draws}分${unknown?'・勝敗未確認'+unknown+'件':''}）。未収録試合や紐付け保留は出場なしを意味しません。全日本選手権の通算成績・ランキングとは分離しています。</p></div><div class="table-wrap"><table class="profile-match-table"><thead><tr><th>大会年度・東西</th><th>対戦相手</th><th>勝敗</th><th>取得本数・技（本人 / 相手）</th><th>根拠</th></tr></thead><tbody>${body}</tbody></table></div>`;
     grid.appendChild(section);
   }
   window.addEventListener('hashchange',sync);
