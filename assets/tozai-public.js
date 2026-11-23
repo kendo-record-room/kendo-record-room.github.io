@@ -1,6 +1,7 @@
 'use strict';
 (function(){
  const data = window.KENDO_TOZAI_PUBLIC;
+ const profileLinks = window.KENDO_TOZAI_PROFILE_LINKS?.links || {};
  if (!data || !Array.isArray(data.records)) return;
  const $ = (id)=>document.getElementById(id);
  const esc = (v)=>String(v ?? '').replace(/[&<>"']/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -42,10 +43,10 @@
    $('coverage').textContent=`確認済み対戦 ${r.bouts.length} / ${expected}試合${r.bouts.length < expected ? '（他は個人別結果未収録）' : ''}。勝敗不明の試合は空欄を推測しません。`;
    $('matchRows').innerHTML=visible.map(b=>{
      const east=b.left.side==='東軍'?b.left:b.right;const west=b.left.side==='西軍'?b.left:b.right;
-     const showName=(p)=>`<strong>${esc(p.name??'未確認')}</strong><span class="skill">${esc(scoreText(p))}</span>`;
+     const showName=(p,side)=>{const id=profileLinks[b.id]?.[side];return `${id?`<a class="player-link" href="index.html#/player/${encodeURIComponent(id)}">${esc(p.name??'未確認')}</a>`:`<strong>${esc(p.name??'未確認')}</strong>`}<span class="skill">${esc(scoreText(p))}</span>`};
      const result=b.winner ? `<span class="winner">${esc(b.winner)}勝利</span>` : (String(b.outcome||'').includes('引')?'引き分け':'<span class="unknown">勝敗未確認</span>');
      const ext=b.extension===true?'あり':b.extension===false?'なし':'<span class="unknown">未確認</span>';
-     return `<tr><td>${esc(b.order??'―')}<span class="skill">${esc(b.position||'―')}</span></td><td>${showName(east)}</td><td>${showName(west)}</td><td>${result}</td><td>${displayTechnique(b)}</td><td>${ext}</td><td>${srcLink(b.source,'公式')}</td></tr>`;
+     return `<tr data-bout="${esc(b.id)}" class="${params.get('bout')===b.id?'linked-target':''}"><td>${esc(b.order??'―')}<span class="skill">${esc(b.position||'―')}</span></td><td>${showName(east,east===b.left?'left':'right')}</td><td>${showName(west,west===b.left?'left':'right')}</td><td>${result}</td><td>${displayTechnique(b)}</td><td>${ext}</td><td>${srcLink(b.source,'公式')}</td></tr>`;
    }).join('');
    $('emptyMatches').hidden=visible.length>0;
    const partial=r.partialObservations.filter(o=>o.name);
@@ -63,4 +64,5 @@
  }
  ['yearSelect','genderSelect'].forEach(id=>$(id).addEventListener('change',render));
  $('nameSearch').addEventListener('input',render);render();
+ const targetId=params.get('bout');if(targetId){const target=[...document.querySelectorAll('[data-bout]')].find(el=>el.dataset.bout===targetId);if(target)requestAnimationFrame(()=>target.scrollIntoView({block:'center'}));}
 })();
