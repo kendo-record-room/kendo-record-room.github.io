@@ -1,7 +1,7 @@
 'use strict';
 (() => {
   const app=document.getElementById('app');
-  const nav=[['#/','⌂','ホーム'],['#/players','♙','選手名鑑'],['#/events','♜','大会データ'],['#/wkc','◎','世界選手権'],['#/aokc','◇','アジア・オセアニア'],['#/rankings','▥','ランキング'],['#/compare','⇄','選手比較'],['#/updates','≡','更新履歴']];
+  const nav=[['#/','⌂','ホーム'],['#/players','♙','選手名鑑'],['#/events','♜','大会データ'],['#/wkc','◎','世界選手権'],['#/aokc','◇','アジア・オセアニア'],['#/todo2026','♧','都道府県対抗'],['#/rankings','▥','ランキング'],['#/compare','⇄','選手比較'],['#/updates','≡','更新履歴']];
   const prefecturesNorthSouth=['北海道','青森県','岩手県','宮城県','秋田県','山形県','福島県','茨城県','栃木県','群馬県','埼玉県','千葉県','東京都','神奈川県','新潟県','富山県','石川県','福井県','山梨県','長野県','岐阜県','静岡県','愛知県','三重県','滋賀県','京都府','大阪府','兵庫県','奈良県','和歌山県','鳥取県','島根県','岡山県','広島県','山口県','徳島県','香川県','愛媛県','高知県','福岡県','佐賀県','長崎県','熊本県','大分県','宮崎県','鹿児島県','沖縄県'];
   let playerQuery='', genderFilter='すべて', prefFilter='すべて', eventQuery='', eventGender='すべて', eventYear='すべて', rankMetric='wins',rankGender='すべて',compA='m002',compB='m005';
   const norm=s=>String(s??'').normalize('NFKC').replace(/[\s　]+/g,'').replace(/[﨑崎]/g,'崎').replace(/[髙高]/g,'高').toLowerCase();
@@ -11,6 +11,30 @@
     const shown=String(raw??'').trim().replace(/[\s　]+/g,' ');
     return historicalDisplayNames[shown.replace(/ /g,'')]||shown;
   };
+  // 2026 prefectural team registrations: new first-time site records (count from the roster only); unresolved identities stay unlinked.
+  const todoNewRegistered = todo2026.roster.filter(r=>r.identityStatus==='A-new-2026-registration');
+  const todoPrefFull=p=>/^(?:北海道|.{2,3}[都府県])$/.test(p)?p:p==='東京'?'東京都':p==='京都'?'京都府':p==='大阪'?'大阪府':p+'県';
+  for(const r of todoNewRegistered){
+    if(!r.playerId || players.some(p=>p.id===r.playerId))throw new Error('Duplicate team-registration player ID: '+r.playerId);
+    players.push({id:r.playerId,name:r.name,gender:r.gender,pref:todoPrefFull(r.prefecture),aff:'2026年都道府県対抗登録（勤務先未確認）',ageAt2026:null,grade:'',skill:'',stance:'',high:'',univ:'',source:r.source,registrationOnly:true});
+  }
+  // Round 213: the independently verified 2009–2026 women's team-registration links
+  // did not previously generate a player-directory entry for any of these 12 IDs.
+  // Create ONE registration-only profile per proven identity, never a championship record.
+  for(const [id,history] of Object.entries(todoWomenLinkedProfiles)){
+    if(players.some(p=>p.id===id))continue;
+    const latest=history.entries[history.entries.length-1];
+    const names=[...new Set(history.entries.map(e=>e.name))].filter(n=>norm(n)!==norm(history.name));
+    players.push({id,name:history.name,gender:'女子',pref:todoPrefFull(latest.prefecture),
+      aff:'所属・勤務先未確認',ageAt2026:null,grade:'',skill:'',stance:'',high:'',univ:'',
+      registrationOnly:true,nameAliases:names,source:latest.source});
+  }
+  for(const bout of todo2025.individualBouts){
+    if(!bout.actualBoutConfirmed||players.some(p=>p.id===bout.playerId))continue;
+    players.push({id:bout.playerId,name:bout.name,gender:'女子',pref:bout.prefecture,
+      aff:'所属・勤務先未確認',ageAt2026:null,grade:'',skill:'',stance:'',high:'',univ:'',
+      registrationOnly:true,source:bout.officialRosterSource});
+  }
   for (const p of players) p.name=displayNames[p.id]||p.name;
   for (const p of players) { const r=nameReadings[p.id];p.reading=r?.reading||'';p.readingStatus=r?.status||'未確認'; }
   // Latest-attended-championship occupations: only apply to empty/unverified source fields.
@@ -43,6 +67,14 @@
   for (const p of players) {
     const old=[...(historicNameIndex.get(p.id)||[])].filter(n=>norm(n)!==norm(p.name));
     if (old.length) p.nameAliases=[...new Set([...(p.nameAliases||[]),...old])];
+  }
+  // Round 213: link the seven pre-existing women's championship profiles to their
+  // previously audited prefectural-team roster names without creating duplicate persons.
+  for(const p of players){
+    const linked=todoWomenLinkedProfiles[p.id];
+    if(!linked)continue;
+    const aliases=linked.entries.map(e=>e.name).filter(n=>norm(n)!==norm(p.name));
+    if(aliases.length)p.nameAliases=[...new Set([...(p.nameAliases||[]),...aliases])];
   }
   const readingCount=players.filter(p=>p.readingStatus==='A').length;
   const readingLabel=p=>p.reading?`<span class="name-reading">${esc(p.reading)}</span>`:'';
@@ -139,6 +171,7 @@
   const profileFactAsOf=event=>{
     if(!event)return '';
     if(event.id==='m74'||event.id==='w65')return '2026/11/3';
+    if(event.id==='td26'&&event.date){const bits=event.date.split('-').map(Number);return `${bits[0]}/${bits[1]}/${bits[2]}`;}
     if(event.year===2020&&event.heldYear!==event.year)return '2021/3/14';
     // A precise day must not be invented when only the event year is recorded.
     return `${event.year}年大会`;
@@ -147,6 +180,16 @@
   // Tournament-specific prefectures. A prefectural-team entry is the team represented,
   // not proof of registration with a second prefectural kendo federation.
   // Never link unresolved same-name candidates to a known profile.
+  // Round 218: official source discrepancies are annotations, not proof that two athletes differ.
+  // Preserve both source statements and do not silently rewrite an event's original grade.
+  const officialGradeDiscrepancies={
+    w21_08:{year:2021,earlierGrade:'四段',laterGrade:'三段',earlierUrl:'https://www.kendo.or.jp/news/20210623/',laterUrl:'https://www.kendo.or.jp/competition/champ-joshi-60th/'},
+    w25_12:{year:2023,earlierGrade:'四段',laterGrade:'三段',earlierUrl:'https://www.kendo.or.jp/news/20230621/',laterUrl:'https://www.kendo.or.jp/competition/champ-joshi-62nd/'}
+  };
+  const renderOfficialGradeDiscrepancy=p=>{
+    const d=officialGradeDiscrepancies[p.id];if(!d)return '';
+    return `<p class="small muted profile-grade-discrepancy" role="note"><strong>公式資料間の段位表記の違い：</strong>${esc(d.year)}年の<a class="data-link" href="${esc(d.earlierUrl)}" target="_blank" rel="noopener noreferrer">都道府県対抗女子の登録名簿</a>では${esc(d.earlierGrade)}、後に開催された<a class="data-link" href="${esc(d.laterUrl)}" target="_blank" rel="noopener noreferrer">全日本女子選手権の出場名簿</a>では${esc(d.laterGrade)}と記載されています。降段したと断定するものではなく、両大会の記載を原文のまま保存しています。人物IDは同一人物として管理し、別人と確認できた場合は記録を切り離します。</p>`;
+  };
   const profileRegistrationRow=(p,latestEvent)=>{
     const snapshots=[];
     if(latestEvent){
@@ -154,8 +197,12 @@
       if(pref && pref!=='未確認')snapshots.push({pref,note:`※${String(latestEvent.year).slice(-2)}全日本`,date:latestEvent.id==='m74'||latestEvent.id==='w65'?'2026-11-03':latestEvent.year===2020?'2021-03-14':`${latestEvent.year}-01-01`,type:'championship'});
     }
     for(const r of (typeof todo2026==='undefined'?[]:todo2026.roster)){
-      if(r.playerId!==p.id || !['A-confirmed-existing','A-new-2026-registration'].includes(r.identityStatus))continue;
+      if(r.playerId!==p.id || !String(r.identityStatus||'').startsWith('A-'))continue;
       snapshots.push({pref:todoPrefFull(r.prefecture),note:`※${String(r.eventDate.slice(2,4))}都道府県対抗`,date:r.eventDate,type:'team'});
+    }
+    for(const r of (todoWomenLinkedProfiles[p.id]?.entries||[])){
+      if(r.year===2026)continue; // the 2026 base roster was added above
+      snapshots.push({pref:todoPrefFull(r.prefecture),note:`※${String(r.year).slice(-2)}都道府県対抗`,date:r.eventDate||String(r.year),type:'team'});
     }
     if(!snapshots.length && p.pref && p.pref!=='未確認')snapshots.push({pref:p.pref,note:'',date:'',type:'unknown'});
     snapshots.sort((a,b)=>b.date.localeCompare(a.date));
@@ -553,8 +600,8 @@
     {date:'2026-11-20',tag:'第20組・2013年女子追加',title:'2013年女子の全63試合を収録',desc:'女子2013年大会を追加した当時の調査記録です。現在は男女とも2012〜2026年の15大会を集計しています。'}
   ];
   function renderHome(){return `${verifiedBanner}<div class="hero"><p class="eyebrow">KENDO RECORDS & INSIGHTS</p><h2>剣道の記録を、<br>もっと深く、もっと探しやすく。</h2><p>男女とも2012〜2026年の連続15大会の公式記録を、対象期間をそろえて検索・集計する。</p><form class="hero-search" id="heroSearch"><input id="heroQ" type="search" placeholder="選手名・ふりがな・所属・出身校を検索" aria-label="選手検索"><button type="submit" class="btn red">検索する →</button></form></div>
-  <div class="stats">${statCard('登録選手',players.length,'名','男女とも2012年〜')}${statCard('大会・開催回',events.length,'件','男女・年度別')}${statCard('収録大会別成績',records.length,'件','2011年参考記録を含む')}${statCard('収録試合',allScopedMatches.length,'件','2011年参考試合を含む')}</div>
-  <div class="two-col"><section><div class="section-head"><h3 class="section-title">記録を探す</h3></div><div class="quick-grid"><a class="quick" href="#/players"><span class="qicon">♙</span><span><strong>選手名鑑</strong><span>名前・読み・所属・出身校</span></span></a><a class="quick" href="#/events"><span class="qicon">♜</span><span><strong>大会データ</strong><span>開催年度・大会回次</span></span></a><a class="quick" href="#/wkc"><span class="qicon">◎</span><span><strong>世界剣道選手権（WKC）</strong><span>2015・2018・2024の記録を検索</span></span></a><a class="quick" href="#/rankings"><span class="qicon">▥</span><span><strong>ランキング</strong><span>集計範囲を明示</span></span></a><a class="quick" href="#/compare"><span class="qicon">⇄</span><span><strong>選手比較</strong><span>2人の記録を比較</span></span></a></div></section>
+  <div class="stats">${statCard('登録選手',players.length,'名','全日本選手権＋都道府県対抗')}${statCard('大会・開催回',events.length,'件','男女・年度別')}${statCard('収録大会別成績',records.length,'件','2011年参考記録を含む')}${statCard('収録試合',allScopedMatches.length,'件','2011年参考試合を含む')}</div>
+  <div class="two-col"><section><div class="section-head"><h3 class="section-title">記録を探す</h3></div><div class="quick-grid"><a class="quick" href="#/players"><span class="qicon">♙</span><span><strong>選手名鑑</strong><span>名前・読み・所属・出身校</span></span></a><a class="quick" href="#/events"><span class="qicon">♜</span><span><strong>大会データ</strong><span>開催年度・大会回次</span></span></a><a class="quick" href="#/todo2026"><span class="qicon">♧</span><span><strong>都道府県対抗・2026年</strong><span>男女の登録選手・団体対戦</span></span></a><a class="quick" href="#/wkc"><span class="qicon">◎</span><span><strong>世界剣道選手権（WKC）</strong><span>2015・2018・2024の記録を検索</span></span></a><a class="quick" href="#/rankings"><span class="qicon">▥</span><span><strong>ランキング</strong><span>集計範囲を明示</span></span></a><a class="quick" href="#/compare"><span class="qicon">⇄</span><span><strong>選手比較</strong><span>2人の記録を比較</span></span></a></div></section>
   <section><div class="section-head"><h3 class="section-title">最近の更新</h3><a class="quiet-link" href="#/updates">一覧へ →</a></div><div class="pane">${visibleUpdates.slice(0,4).map(u=>`<a class="list-row" href="#/updates" aria-label="${esc(u.title)}：更新履歴で読む"><div><div class="row-sub">${esc(u.date)} ${badge(u.tag)}</div><div class="row-title">${esc(u.title)}</div></div><span class="arrow" aria-hidden="true">›</span></a>`).join('')}</div></section></div>
   <section class="section-block"><div class="section-head"><h3 class="section-title">2026年の大会結果を見る</h3><a href="#/events" class="quiet-link">全大会一覧 →</a></div><div class="pane">${events.filter(e=>e.year===2026).map(e=>`<a class="list-row" href="#/event/${e.id}"><div><div class="row-title">${esc(e.edition)} ${esc(e.name)}</div><div class="row-sub">2026年 / ${esc(e.gender)} / 出場64名・全63試合収録</div></div><span class="arrow">›</span></a>`).join('')}</div></section>
     <section class="pane" style="margin-top:19px"><div class="pane-pad"><h3 class="section-title">記録の読み方</h3><p class="small muted">掲載範囲：男女とも2012〜2026年の15大会（計1,890試合）。2011年男子63試合は参考収録で、ランキングには含めません。<strong>通算</strong>は生涯通算ではなく、このサイトの集計対象期間の合計です。</p><p class="small muted">2020年大会は2021年3月14日開催の延期大会として独立管理。延長未確認77試合と、公式資料間で取得技が食い違う2試合は勝敗を残したまま未確認扱いにし、技別集計から未確認の技を除外しています。</p><p class="small muted">出典は全日本剣道連盟などの公式発表を優先。大会ページの存在だけを、個別試合のすべての記録が検証済みという意味にはしません。</p></div></section>
@@ -596,7 +643,7 @@
     bindCompareButtons();
   }
   function jumpDirectory(targetId){const target=document.getElementById(targetId);if(!target)return;target.scrollIntoView({behavior:'instant',block:'start'});if(target.hasAttribute('tabindex'))target.focus({preventScroll:true});}
-  function renderPlayers(){const prefs=prefecturesNorthSouth;return `${verifiedBanner}${pageHeader('PLAYER DIRECTORY','選手名鑑','2011年までの男子復元記録と2012年以降の女子記録を含む出場選手を氏名の読みで五十音順に整理。上部の「あ・か・さ…」から各行へ移動し、各行の「か・き・く・け・こ」などから頭文字別に移動できます。')}
+  function renderPlayers(){const prefs=prefecturesNorthSouth;return `${verifiedBanner}${pageHeader('PLAYER DIRECTORY','選手名鑑','全日本選手権などの出場記録に加え、2026年都道府県対抗の新規登録選手も収録。公式の読みが未確認の選手は「未確認」に分類。上部の「あ・か・さ…」から各行へ移動し、各行の「か・き・く・け・こ」などから頭文字別に移動できます。')}
     <div class="toolbar"><div class="field search"><label for="playerSearch">フリーワード</label><input id="playerSearch" class="control" type="search" placeholder="例：ほしこ、ナカダ、筑波大学" value="${esc(playerQuery)}"></div><div class="field"><label for="playerGender">区分</label><select id="playerGender" class="control">${['すべて','男子','女子'].map(g=>`<option ${genderFilter===g?'selected':''}>${g}</option>`).join('')}</select></div><div class="field"><label for="prefFilter">代表都道府県</label><select id="prefFilter" class="control">${['すべて',...prefs].map(g=>`<option ${prefFilter===g?'selected':''}>${esc(g)}</option>`).join('')}</select></div></div><div class="count-line"><span id="playerCount"></span><span>代表都道府県は北海道→沖縄県の順</span></div><nav id="kanaIndex" class="kana-index" aria-label="選手名鑑の五十音索引"></nav><div id="playerResults" class="kana-results"></div>`;}
   // Profile cards use the highest result among recorded years, not the last year's result.
   const finishRank=finish=>{
@@ -626,6 +673,97 @@
     if(sourceScopeUnverified(e))notes.push('試合別出典の一部照合中');
     return notes.length?notes.map(esc).join('・'):'';
   }
+  function todoBoutResult(b){
+    return {勝:'勝ち',負:'負け',分:'引き分け'}[b.individualResult] || '未確認';
+  }
+  function todoBoutScore(b){
+    if(b.scoreIsFullyConfirmed){
+      const scored=(b.scoringTechniques||[]).join('・')||'—';
+      const conceded=(b.concededTechniques||[]).join('・')||'—';
+      const foulScored=(b.foulAwardIppon||0);
+      const foulConceded=(b.concededFoulAwardIppon||0);
+      const ownFoul=foulScored?`・反則による得点${foulScored}本`:'';
+      const oppFoul=foulConceded?`・反則による被得点${foulConceded}本`:'';
+      return `${b.exactTotalScoredIppon}–${b.exactTotalConcededIppon}（技 ${scored}${ownFoul} ／ 被技 ${conceded}${oppFoul}）`;
+    }
+    return b.minExplicitlyReportedScoredIppon ? `${b.minExplicitlyReportedScoredIppon}本以上（技不明）` : '未確認';
+  }
+  function todoBoutSource(b){
+    const label=b.officialPrimarySource===b.officialTeamResultEvidence?'全剣連公式詳細':'学校公式';
+    return `<a class="data-link" href="${esc(b.officialPrimarySource)}" target="_blank" rel="noopener noreferrer">${label} ↗</a>`;
+  }
+  function todoBoutPlayer(name,id){
+    if(!name)return '—';
+    return id?`<a href="#/player/${esc(id)}">${esc(name)}</a>`:esc(name);
+  }
+  function todoBoutSummary(bouts){
+    const sections=[['通常対戦',false],['代表戦',true]];
+    return sections.map(([label,representative])=>{
+      const current=bouts.filter(b=>Boolean(b.isRepresentativeBout)===representative);
+      if(!current.length)return '';
+      const count=result=>current.filter(b=>b.individualResult===result).length;
+      const unknown=current.length-count('勝')-count('負')-count('分');
+      const scored=current.reduce((total,b)=>total+(b.exactTotalScoredIppon??0),0);
+      const incomplete=current.filter(b=>b.exactTotalScoredIppon==null).length;
+      return `<p class="small">${label} ${current.length}試合 ／ ${count('勝')}勝${count('負')}敗${count('分')}分${unknown?`・勝敗未確認${unknown}件`:''} ／ 取得${scored}本${incomplete?`（本数未確定${incomplete}試合を除く）`:''}</p>`;
+    }).join('');
+  }
+  // Only documented team *registrations* are shown; never add these to individual-championship rankings.
+  function renderLinkedTodoWomenHistory(p){
+    const linked=todoWomenLinkedProfiles[p.id];
+    if(!linked)return '';
+    const slots=[...linked.entries].sort((a,b)=>b.year-a.year);
+    const cells=slots.map(r=>`<tr><td>${esc(r.year)}年</td><td>${esc(todoPrefFull(r.prefecture))}</td><td>${esc(r.position)}</td><td>${Number.isInteger(r.age)?esc(r.age)+'歳':'—'}</td><td>${esc(r.grade||'—')}</td><td><a class="data-link" href="${esc(r.source)}" target="_blank" rel="noopener noreferrer">全剣連公式名簿 ↗</a></td></tr>`).join('');
+    return `<section class="pane wide"><div class="pane-pad"><h3 class="section-title">全日本都道府県対抗女子・年度別登録履歴（${slots.length}大会）</h3><p class="small muted">2009〜2026年の公式選手名簿に掲載された登録記録です。代表県は当該大会の代表県であり、剣連所属県と同じとは限りません。登録は本人実戦・勝敗・取得技を証明しません。年齢は各公式名簿の記載値で、生年月日や現在年齢は推定しません。</p><div class="table-wrap"><table class="profile-match-table"><thead><tr><th>年度</th><th>代表</th><th>登録位置</th><th>名簿年齢</th><th>称号・段位</th><th>公式根拠</th></tr></thead><tbody>${cells}</tbody></table></div></div></section>`;
+  }
+  // Annual team roster is distinct from actual participation in a bout.
+  function renderTodo2025PlayerHistory(p){
+    const bouts=todo2025.individualBouts.filter(b=>b.playerId===p.id&&b.actualBoutConfirmed);
+    if(!bouts.length)return '';
+    const rows=bouts.map(b=>{
+      const position=b.isRepresentativeBout?`代表戦（${b.position}）`:b.position;
+      const opponent=b.opponentName?todoBoutPlayer(b.opponentName,b.opponentPlayerId):'氏名未確認';
+      return `<tr><td>${esc(b.round)}</td><td>${esc(position)}</td><td>${esc(b.opponentPrefecture)} ${opponent}</td><td>${todoBoutResult(b)}</td><td>${esc(todoBoutScore(b))}</td><td><a class="data-link" href="${esc(b.officialPrimarySource)}" target="_blank" rel="noopener noreferrer">一次資料 ↗</a></td></tr>`;
+    }).join('');
+    return `<section class="pane wide"><div class="pane-pad"><h3 class="section-title">2025年・都道府県対抗女子 本人実戦</h3><p class="small muted">一次資料で確認できた対戦を掲載しています。</p>${todoBoutSummary(bouts)}<div class="table-wrap"><table class="profile-match-table"><thead><tr><th>回戦</th><th>位置</th><th>対戦相手</th><th>勝敗</th><th>本数・技</th><th>根拠</th></tr></thead><tbody>${rows}</tbody></table></div></div></section>`;
+  }
+  function renderTodoPlayerHistory(p){
+    const rs=todo2026.roster.filter(r=>r.playerId===p.id);
+    if(!rs.length)return '';
+    const linked2026=Boolean(todoWomenLinkedProfiles[p.id]);
+    const cells=rs.map(r=>`<tr><td>${esc(r.gender==='男子'?'第74回 男子':'第18回 女子')}</td><td>${esc(todoPrefFull(r.prefecture))}</td><td>${esc(r.order)}</td><td>${r.age!==null?esc(r.age)+'歳':'—'}</td><td>${esc(r.grade||'—')}</td><td><a class="data-link" target="_blank" rel="noopener noreferrer" href="${esc(r.source)}">公式名簿 ↗</a></td></tr>`).join('');
+    const confirmed=(todo2026.individualBouts||[]).filter(b=>b.playerId===p.id);
+    const confirmedRows=confirmed.map(b=>`<tr><td>${esc(b.round)}</td><td>${esc(b.position)}</td><td>${esc(b.opponentPrefecture)} ${todoBoutPlayer(b.opponentName,b.opponentPlayerId)}</td><td>${todoBoutResult(b)}</td><td>${esc(todoBoutScore(b))}</td><td>${todoBoutSource(b)}</td></tr>`).join('');
+    const confirmedSection=confirmed.length?`<h4>本人実戦A確定 ${confirmed.length}試合</h4>${todoBoutSummary(confirmed)}<div class="table-wrap"><table class="profile-match-table"><thead><tr><th>回戦</th><th>位置</th><th>対戦相手</th><th>本人結果</th><th>本数・技</th><th>根拠</th></tr></thead><tbody>${confirmedRows}</tbody></table></div>`:'';
+    if(linked2026)return confirmed.length?`<section class="pane wide"><div class="pane-pad"><h3 class="section-title">2026年・本人実戦記録</h3><p class="small muted">上の年度別名簿登録とは別に、本人実戦を確認できた試合だけを掲載します。</p>${confirmedSection}</div></section>`:'';
+    return `<section class="pane wide"><div class="pane-pad"><h3 class="section-title">全日本都道府県対抗・2026年登録</h3><p class="small muted">下記は大会当時の公式登録です。登録だけでは個別対戦への出場・勝利・取得技を意味しません。年齢・段位は当日の資料から転記確認できた分のみ表示します。</p><div class="table-wrap"><table class="profile-match-table"><thead><tr><th>大会</th><th>代表</th><th>登録位置</th><th>年齢</th><th>称号・段位</th><th>根拠</th></tr></thead><tbody>${cells}</tbody></table></div>${confirmedSection}<p class="small muted">年齢・称号段位の基準：${rs[0].eventDate.replaceAll('-','/')}大会時点。未転記項目は「—」表示。</p></div></section>`;
+  }
+  function renderTodo2026(){
+    const d=todo2026,orders=['先鋒','次鋒','五将','中堅','三将','副将','大将'];
+    const roundOrder=['1回戦','2回戦','3回戦','準々決勝','準決勝','決勝'];
+    const individual=(d.individualBouts||[]);
+    const detailRows=(gender)=>individual.filter(b=>b.gender===gender).map(b=>`<tr><td>${esc(b.round)}</td><td>${todoBoutPlayer(b.name,b.playerId)}</td><td>${esc(b.position)}</td><td>${esc(b.prefecture)} ― ${esc(b.opponentPrefecture)} ${todoBoutPlayer(b.opponentName,b.opponentPlayerId)}</td><td>${todoBoutResult(b)}</td><td>${esc(todoBoutScore(b))}</td><td>${todoBoutSource(b)}</td></tr>`).join('');
+    const awardText=(g)=>{const a=d.awards[g];return a?`<p class="small"><strong>入賞：</strong>${Object.entries(a.teams_ranked||{}).map(([rank,teams])=>`${esc(rank)}位 ${teams.map(esc).join('・')}`).join(' ／ ')}</p>`:'';};
+    const genderBlocks=['男子','女子'].map(g=>{
+      const rr=d.roster.filter(r=>r.gender===g),mm=d.teamMatches.filter(m=>m.gender===g);
+      const prefs=prefecturesNorthSouth.map(p=>rr.find(r=>todoPrefFull(r.prefecture)===p)?.prefecture).filter(Boolean);
+      const standings=prefs.map(pref=>{
+        const people=rr.filter(r=>r.prefecture===pref).sort((a,b)=>orders.indexOf(a.order)-orders.indexOf(b.order));
+        return `<details class="history-group"><summary>${esc(todoPrefFull(pref))}（登録7名）</summary><div class="table-wrap"><table class="profile-match-table"><thead><tr><th>登録順</th><th>選手</th><th>年齢</th><th>称号・段位</th></tr></thead><tbody>${people.map(r=>`<tr><td>${esc(r.order)}</td><td>${r.playerId?`<a class="data-link" href="#/player/${esc(r.playerId)}">${esc(r.name)}</a>`:`${esc(r.name)}<div class="small muted">人物ID照合保留</div>`}</td><td>${r.age!==null?esc(r.age)+'歳':'—'}</td><td>${esc(r.grade||'—')}</td></tr>`).join('')}</tbody></table></div></details>`;
+      }).join('');
+      const matches=roundOrder.map(round=>{
+        const rows=mm.filter(m=>m.round===round);
+        return `<details class="history-group"><summary>${esc(round)}（${rows.length}対戦）</summary><div class="table-wrap"><table class="profile-match-table"><thead><tr><th>対戦都道府県</th><th>勝数</th><th>本数</th><th>勝者</th><th>決着</th></tr></thead><tbody>${rows.map(m=>`<tr><td>${esc(m.team_a)} ― ${esc(m.team_b)}</td><td>${esc(m.team_a_wins)}–${esc(m.team_b_wins)}</td><td>${esc(m.team_a_points)}–${esc(m.team_b_points)}</td><td><strong>${esc(m.winner)}</strong></td><td>${esc(m.decision||'未確認')}</td></tr>`).join('')}</tbody></table></div></details>`;
+      }).join('');
+      const source=g==='男子'?d.meta.sources.menRoster:d.meta.sources.womenRoster;
+      const resultSource=g==='男子'?d.meta.sources.menResults:d.meta.sources.womenResults;
+      return `<section class="pane" style="margin:20px 0"><div class="pane-pad"><h3 class="section-title">2026年 ${g}・${g==='男子'?'第74回':'第18回'}</h3>${awardText(g)}<p class="small muted">${esc(g==='男子'?'2026/04/29':'2026/07/12')}開催。団体戦46対戦、公式登録329名。<a class="data-link" target="_blank" rel="noopener noreferrer" href="${esc(source)}">公式出場名簿 ↗</a> ／ <a class="data-link" target="_blank" rel="noopener noreferrer" href="${esc(resultSource)}">大会公式結果 ↗</a></p><h4>団体対戦結果</h4>${matches}<h4>本人実戦のA確定記録</h4><p class="small muted">本人の実戦を一次資料で確認できた記録のみ掲載。対戦相手名や未確認の技・勝敗は推測しません。登録名簿とは分離管理しています。</p>${detailRows(g)?`<div class="table-wrap"><table class="profile-match-table"><thead><tr><th>回戦</th><th>選手</th><th>位置</th><th>県対戦</th><th>本人結果</th><th>技</th><th>根拠</th></tr></thead><tbody>${detailRows(g)}</tbody></table></div>`:'<p class="small muted">本人実戦A確定なし（調査中）</p>'}<h4>都道府県別登録選手</h4><p class="small muted">都道府県を押すと7人の登録名簿を確認できます。登録のみで本人実戦とはみなしません。</p>${standings}</div></section>`;
+    }).join('');
+    return `${verifiedBanner}${pageHeader('ALL JAPAN PREFECTURAL TEAM KENDO','全日本都道府県対抗剣道優勝大会','2026年・男女の公式登録名簿と団体対戦記録。全日本選手権の個人成績・ランキングとは独立した団体大会。')}
+      <div class="stats">${statCard('公式登録',658,'枠','男女47都道府県×7名')}${statCard('都道府県別対戦',92,'試合','男女46試合ずつ')}${statCard('選手ID登録',d.meta.counts.registeredProfilesLinked,'枠','既存'+d.meta.counts.existingLinked+'＋新規'+d.meta.counts.newPlayerIds)}</div>
+      <section class="pane"><div class="pane-pad"><h3 class="section-title">記録の範囲</h3><p>登録658枠と団体対戦92試合は全剣連の公式資料を根拠として収録しています。本人の出場試合、勝利、技、本数を推定することはありません。</p><p class="small muted">同一人物判定保留は${d.meta.counts.identityUnresolvedB}枠。保留枠は既存IDに連結せず、登録の事実だけ表示。2026年名簿の年齢・段位は確認・転記が済んだもののみ掲載し、空欄は「—」としました。新規${d.meta.counts.newPlayerIds}選手の読みや職業を推測しません。</p></div></section>
+      ${genderBlocks}<p class="footnote">※本サイトは全日本剣道連盟の公式サイトではありません。出場選手名簿は本人実戦を裏付ける資料ではありません。</p>`;
+  }
   function renderPlayer(id){
     id=canonicalPlayerId(id);
     const p=findP(id);if(!p)return notFound();
@@ -641,8 +779,21 @@
     const latestAge=latestAgeEvent?eventAgeFor(latestAgeEvent,p):null;
     const latestGradeEvent=rs.map(r=>findE(r.event)).find(e=>e&&Boolean(eventGradeFor(e.id,p.id)))||null;
     const grade=latestGradeEvent?eventGradeFor(latestGradeEvent.id,p.id):'';
+    // The team's official roster gives independent dated age/grade facts, not proof of actual participation.
+    const linkedSlots=todoWomenLinkedProfiles[p.id]?.entries||[];
+    const teamRosterLast=(typeof todo2026==='undefined'?[]:todo2026.roster).find(r=>r.playerId===p.id&&String(r.identityStatus||'').startsWith('A-'));
+    const lastLinked=linkedSlots[linkedSlots.length-1]||null;
+    const latestTeamFact=teamRosterLast||lastLinked;
+    const latestTeamYear=teamRosterLast?2026:lastLinked?.year;
+    const teamRosterAsOf=latestTeamYear?{id:'tdw',year:latestTeamYear}:null;
+    const showTeamAge=teamRosterAsOf&&Number.isInteger(latestTeamFact?.age)&&(!latestAgeEvent||latestAgeEvent.year<latestTeamYear);
+    const showTeamGrade=teamRosterAsOf&&Boolean(latestTeamFact?.grade)&&(!latestGradeEvent||latestGradeEvent.year<latestTeamYear);
+    const shownAge=showTeamAge?latestTeamFact.age:latestAge;
+    const shownAgeEvent=showTeamAge?teamRosterAsOf:latestAgeEvent;
+    const shownGrade=showTeamGrade?latestTeamFact.grade:grade;
+    const shownGradeEvent=showTeamGrade?teamRosterAsOf:latestGradeEvent;
     const officialAppearance=officialAppearanceAt(p,latestEvent);
-    const appearanceText=officialAppearance?`${officialAppearance.count}回（${latestYear}年大会公式）`:'公式出場回数：確認中';
+    const appearanceText=officialAppearance?`${officialAppearance.count}回（${latestYear}年大会公式）`:linkedSlots.length?`全日本女子選手権：未照合 ／ 都道府県対抗女子：名簿登録${linkedSlots.length}大会`:'公式出場回数：確認中';
     const latestPref=latestEvent?prefectureFor(latestEvent,p):p.pref;
     const rows=rs.map(r=>{
       const e=findE(r.event), ms=profileEventMatches(p,e), yearTitle=e.year===2020?'2020年大会':`${e.year}年度`;
@@ -656,17 +807,18 @@
     return `<div class="breadcrumb"><a href="#/players">選手名鑑</a> › ${esc(p.name)}</div>
     <div class="detail-hero"><div class="detail-main"><div class="avatar ${p.gender==='女子'?'f':''}">${esc(p.name.slice(-1))}</div><div><p class="eyebrow" style="margin:0">PLAYER PROFILE</p><h2>${esc(p.name)}</h2><p class="detail-reading">${p.reading?esc(p.reading):'読み：確認中'}</p>${p.formerName?`<p class="detail-former">過去の登録名：${esc(displayNameForRaw(p.formerName))}${p.formerReading?`（${esc(p.formerReading)}）`:''}</p>`:''}<div class="detail-pills">${badge(p.gender)} ${badge(latestPref||'代表未確認')} ${badge(p.stance||'構え未登録')}</div></div></div><button class="btn secondary" data-compare-add="${p.id}">⇄ この選手を比較に追加</button></div>
     <div class="stats profile-stats">
-      ${statCard(titleName+'通算勝利',a.wins,'勝','2012年以降の公式掲載試合')}
-      ${statCard(titleName+'優勝',a.titles,'回','2012年以降の収録大会')}
-      ${statCard(titleName+'最高成績',finishLabel(bestRank),'',bestFoot)}
+      ${rs.length?`${statCard(titleName+'通算勝利',a.wins,'勝','2012年以降の公式掲載試合')}${statCard(titleName+'優勝',a.titles,'回','2012年以降の収録大会')}${statCard(titleName+'最高成績',finishLabel(bestRank),'',bestFoot)}`:linkedSlots.length?`${statCard('都道府県対抗女子の名簿登録',linkedSlots.length,'大会','本人実戦・勝敗とは別')}${statCard('本人実戦',((todo2026.individualBouts||[]).filter(b=>b.playerId===p.id&&b.actualBoutConfirmed).length||'未確認'),(todo2026.individualBouts||[]).some(b=>b.playerId===p.id&&b.actualBoutConfirmed)?'試合':'','2026年の確認済み分のみ')}${statCard(titleName+'個人戦成績','未収録','','不出場を意味しません')}`:`${statCard('都道府県対抗登録',1,'枠','2026年公式出場名簿')}${statCard('本人実戦',(todo2026.individualBouts||[]).filter(b=>b.playerId===p.id).length||'未調査',(todo2026.individualBouts||[]).some(b=>b.playerId===p.id)?'試合':'','登録と実戦は分離')}${statCard(titleName+'試合成績','非収録','','個人大会への不出場とは断定しない')}`}
     </div>
     <div class="detail-grid profile-grid">
-      <section class="pane wide"><h3 class="section-title">基本プロフィール</h3><div class="definition">${profileRow('氏名の読み',p.reading||'未確認')}${p.formerName?profileRow('過去の登録名・その読み',displayNameForRaw(p.formerName)+(p.formerReading?'（'+p.formerReading+'）':'')):''}${profileRegistrationRow(p,latestEvent)}${profileRow('職業・勤務先',p.aff?`${p.aff}${p.affAsOfYear?`（${p.affAsOfYear}年大会時点）`:''}`:'')}${profileRow('出場回数',appearanceText)}${profileSnapshotRow('年齢',latestAge!==null?`${latestAge}歳`:'',latestAgeEvent)}${educationProfileRow(p,'high')}${educationProfileRow(p,'univ')}${profileSnapshotRow('称号・段位',grade,latestGradeEvent)}${profileRow('構え',p.stance)}${profileRow('得意技',p.skill)}</div>${latestEvent?`<p class="small muted profile-last-source">最終出場大会：${eLink(latestEvent)}${officialAppearance?` ／ <a class="data-link" href="${esc(officialAppearance.source)}" target="_blank" rel="noopener noreferrer">出場回数の公式根拠 ↗</a>`:''}</p>`:''}</section>
-      <section class="pane wide profile-history" style="padding:0"><div class="pane-pad"><h3 class="section-title">${esc(titleName)}・年度別成績</h3><p class="small muted">年度を押すと、その大会での全対戦結果が開きます。当時の段位は公式登録で確認できた場合のみ表示します。</p></div><div class="table-wrap profile-history-wrap"><table class="profile-history-table"><thead><tr><th>大会年度・回次</th><th>当時の年齢・称号段位</th><th>到達成績</th><th>備考</th></tr></thead><tbody>${rows}</tbody></table></div></section>
-      ${renderTechniqueSummary(p)}
+      <section class="pane wide"><h3 class="section-title">基本プロフィール</h3><div class="definition">${profileRow('氏名の読み',p.reading||'未確認')}${p.formerName?profileRow('過去の登録名・その読み',displayNameForRaw(p.formerName)+(p.formerReading?'（'+p.formerReading+'）':'')):''}${profileRegistrationRow(p,latestEvent)}${profileRow('職業・勤務先',p.aff?`${p.aff}${p.affAsOfYear?`（${p.affAsOfYear}年大会時点）`:''}`:'')}${profileRow('出場回数',appearanceText)}${profileSnapshotRow('年齢',shownAge!==null?`${shownAge}歳`:'',shownAgeEvent)}${educationProfileRow(p,'high')}${educationProfileRow(p,'univ')}${profileSnapshotRow('称号・段位',shownGrade,shownGradeEvent)}${profileRow('構え',p.stance)}${profileRow('得意技',p.skill)}</div>${renderOfficialGradeDiscrepancy(p)}${latestEvent?`<p class="small muted profile-last-source">最終出場大会：${eLink(latestEvent)}${officialAppearance?` ／ <a class="data-link" href="${esc(officialAppearance.source)}" target="_blank" rel="noopener noreferrer">出場回数の公式根拠 ↗</a>`:''}</p>`:''}</section>
+      ${rs.length||!linkedSlots.length?`      <section class="pane wide profile-history" style="padding:0"><div class="pane-pad"><h3 class="section-title">${esc(titleName)}・年度別成績</h3><p class="small muted">年度を押すと、その大会での全対戦結果が開きます。当時の段位は公式登録で確認できた場合のみ表示します。</p></div><div class="table-wrap profile-history-wrap"><table class="profile-history-table"><thead><tr><th>大会年度・回次</th><th>当時の年齢・称号段位</th><th>到達成績</th><th>備考</th></tr></thead><tbody>${rows}</tbody></table></div></section>`:''}
+      ${rs.length||!linkedSlots.length?renderTechniqueSummary(p):''}
       ${renderWkcPlayerHistory(p)}
       ${renderWkcTeamPlayerHistory(p)}
       ${renderAokcPlayerHistory(p)}
+      ${renderLinkedTodoWomenHistory(p)}
+      ${renderTodo2025PlayerHistory(p)}
+      ${renderTodoPlayerHistory(p)}
     </div>${p.formerName?`<div class="source-box small"><strong>氏名の履歴：</strong>現在の表示は${esc(p.name)}。過去の登録名 ${esc(displayNameForRaw(p.formerName))} は同じ選手IDに統合しています。<a class="data-link" href="${esc(p.identitySource)}" target="_blank" rel="noopener noreferrer">同一人物判定の根拠資料 ↗</a></div>`:''}
     <p class="footnote">※勝利・優勝の通算値は2012〜2026年の連続収録期間を対象とし、2011年の参考記録は含めていません。2020年は2021年3月の延期開催大会です。</p>`;
   }
@@ -1077,11 +1229,11 @@
     return `<section class="pane" style="padding:20px"><h3 class="section-title">AOKC（全日本選手権とは別大会）</h3><p><strong>${pLink(a)}</strong>：${esc(fmt(rs[0],a))}</p><p><strong>${pLink(b)}</strong>：${esc(fmt(rs[1],b))}</p>${direct.map(m=>`<p><strong>直接対決（${esc(m.year)}年・${esc(m.round)}）</strong>：${pLink(findP(m.winnerId))}が勝利、${pLink(findP(m.loserId))}が敗戦。${esc(m.scoreVerified||'得点不明')}。${m.walkover?'不戦勝・実戦なし':m.overtimeStatus==='あり'?'延長あり':m.overtimeStatus==='なし'?'延長なし':'延長未確認'}。 <a class="data-link" href="${esc(m.tonamelSource||m.source)}" target="_blank" rel="noopener noreferrer">公式試合記録 ↗</a></p>`).join('')}<p class="small muted">不戦勝は実戦勝利・取得技ランキングに含めません。<a class="data-link" href="#/aokc">大会全体を見る</a></p></section>`;
   }
 
-  function render(){const hash=location.hash||'#/';const route=hash.slice(2).split('/');const key=route[0]||'';const activeKey=key==='player'?'players':key==='event'?'events':key;const pageTitles={'':'ホーム',players:'選手名鑑',player:'選手プロフィール',events:'大会データベース',event:'大会詳細',rankings:'記録・ランキング',wkc:'世界剣道選手権',aokc:'アジア・オセアニア選手権',compare:'選手比較',updates:'更新履歴'};
+  function render(){const hash=location.hash||'#/';const route=hash.slice(2).split('/');const key=route[0]||'';const activeKey=key==='player'?'players':key==='event'?'events':key;const pageTitles={'':'ホーム',players:'選手名鑑',player:'選手プロフィール',events:'大会データベース',event:'大会詳細',rankings:'記録・ランキング',wkc:'世界剣道選手権',aokc:'アジア・オセアニア選手権',todo2026:'都道府県対抗',compare:'選手比較',updates:'更新履歴'};
     document.getElementById('topTitle').textContent='剣道記録室 / '+(pageTitles[key]||'ページ');
     document.getElementById('desktopNav').innerHTML=nav.map(([url,icon,title])=>`<a class="nav-link ${url.slice(2)===(activeKey||'')?'active':''}" href="${url}"><span class="ico">${icon}</span>${title}</a>`).join('');
-    document.getElementById('mobileNav').innerHTML=nav.map(([url,icon,title])=>`<a class="${url.slice(2)===(activeKey||'')?'active':''}" href="${url}"><span class="ico">${icon}</span>${title}</a>`).join('');
-    const views={'':renderHome,players:renderPlayers,player:()=>renderPlayer(route[1]),events:renderEvents,event:()=>renderEvent(route[1]),wkc:()=>renderWkc(Number(route[1])||2024),aokc:renderAokc,rankings:renderRankings,compare:renderCompare,updates:renderUpdates};app.innerHTML=views[key]?views[key]():notFound();
+    document.getElementById('mobileNav').innerHTML=nav.filter(x=>x[2]!=='都道府県対抗').map(([url,icon,title])=>`<a class="${url.slice(2)===(activeKey||'')?'active':''}" href="${url}"><span class="ico">${icon}</span>${title}</a>`).join('');
+    const views={'':renderHome,players:renderPlayers,player:()=>renderPlayer(route[1]),events:renderEvents,event:()=>renderEvent(route[1]),wkc:()=>renderWkc(Number(route[1])||2024),aokc:renderAokc,todo2026:renderTodo2026,rankings:renderRankings,compare:renderCompare,updates:renderUpdates};app.innerHTML=views[key]?views[key]():notFound();
     if(key==='players'){playerCards();document.getElementById('playerSearch').addEventListener('input',e=>{playerQuery=e.target.value;playerCards()});document.getElementById('playerGender').addEventListener('change',e=>{genderFilter=e.target.value;playerCards()});document.getElementById('prefFilter').addEventListener('change',e=>{prefFilter=e.target.value;playerCards()});document.getElementById('kanaIndex').addEventListener('click',e=>{const b=e.target.closest('[data-jump-kana]');if(b&&!b.disabled)jumpDirectory('kana-'+b.dataset.jumpKana);});document.getElementById('playerResults').addEventListener('click',e=>{const sub=e.target.closest('[data-jump-sub]');if(sub&&!sub.disabled)jumpDirectory('kana-sub-'+sub.dataset.jumpSub);if(e.target.closest('[data-back-kana]'))jumpDirectory('kanaIndex')});}
     if(key==='events'){eventRows();document.getElementById('eventSearch').addEventListener('input',e=>{eventQuery=e.target.value;eventRows()});document.getElementById('eventGender').addEventListener('change',e=>{eventGender=e.target.value;eventRows()});document.getElementById('eventYear').addEventListener('change',e=>{eventYear=e.target.value;eventRows()})}
     if(key==='rankings'){rankingRows();document.getElementById('rankMetric').addEventListener('change',e=>{rankMetric=e.target.value;rankingRows()});document.getElementById('rankGender').addEventListener('change',e=>{rankGender=e.target.value;rankingRows()})}

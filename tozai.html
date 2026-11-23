@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="全日本東西対抗剣道大会の2002〜2026年、男女の年度別成績、公式一次資料で確認できた対戦・有効打突・表彰記録。">
+  <title>全日本東西対抗剣道大会の記録｜剣道記録室</title>
+  <link rel="stylesheet" href="assets/tozai-public.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="header-content">
+    <a class="brand" href="index.html"><span class="brand-en">KENDO DATA ARCHIVE</span><strong>剣道記録室</strong></a>
+    <a class="home-link" href="index.html">← ホームへ戻る</a>
+  </div>
+</header>
+<main class="page-shell">
+  <section class="hero" aria-labelledby="page-title">
+    <p class="eyebrow">ALL JAPAN EAST–WEST KENDO CHAMPIONSHIP</p>
+    <h1 id="page-title">全日本東西対抗<br class="mobile-only">剣道大会</h1>
+    <p class="intro">2002〜2026年の男子・女子の団体成績と、全日本剣道連盟などの公式一次資料で裏付けられた個人別対戦・取得技を収録しています。</p>
+    <p class="source-note">2020年は大会未開催。古い年度は対戦・勝敗の一部のみ確認済みで、未確認事項を推測では埋めていません。全日本学生東西対抗とは別の大会です。</p>
+  </section>
+  <section class="stat-strip" aria-label="収録状況">
+    <div><span class="stat-num" id="totalYears">24</span><span class="stat-label">大会年数</span></div>
+    <div><span class="stat-num" id="totalBouts">583</span><span class="stat-label">登録対戦</span></div>
+    <div><span class="stat-num" id="unconfirmedBouts">377</span><span class="stat-label">未収録試合</span></div>
+  </section>
+  <section class="body-section" aria-labelledby="records-title">
+    <div class="section-heading"><div><p class="eyebrow">RECORDS</p><h2 id="records-title">年度別の試合記録</h2></div></div>
+    <div class="controls">
+      <label>大会年<select id="yearSelect" aria-label="大会年"></select></label>
+      <label>区分<select id="genderSelect" aria-label="男子・女子"><option value="男子">男子</option><option value="女子">女子</option></select></label>
+      <label class="name-search">選手名で絞り込み<input type="search" id="nameSearch" placeholder="選手名を入力" autocomplete="off"></label>
+    </div>
+    <div class="event-title"><div><p class="eyebrow" id="yearCaption"></p><h3 id="eventTitle"></h3></div><a id="primarySource" target="_blank" rel="noopener noreferrer">全剣連などの公式資料 ↗</a></div>
+    <div class="scoreboard" id="scoreboard" aria-label="東軍・西軍の総合勝敗"></div>
+    <p class="coverage" id="coverage" role="status" aria-live="polite"></p>
+    <div class="table-scroll"><table><thead><tr><th>試合</th><th>東軍</th><th>西軍</th><th>結果</th><th>取得技（確認済み分）</th><th>延長</th><th>資料</th></tr></thead><tbody id="matchRows"></tbody></table></div>
+    <p class="empty" id="emptyMatches" hidden>条件に一致する対戦はありません。</p>
+    <div id="partialBox" class="partial-box" hidden></div>
+  </section>
+  <section class="body-section" id="awardsSection" aria-labelledby="awards-title" hidden>
+    <div class="section-heading"><div><p class="eyebrow">AWARDS · 2002–2011</p><h2 id="awards-title">公式表彰記録</h2></div></div>
+    <p class="explain">表彰は勝敗を示すものではありません。優秀試合賞で対戦者が判明していても、勝者・本数・技は別の公式根拠がない限り未確認として扱っています。</p>
+    <div class="awards-grid"><div><h3>優秀試合賞</h3><div id="awardPairs"></div></div><div><h3>優秀選手賞</h3><div id="awardPlayers"></div></div></div>
+    <p><a id="awardsSource" target="_blank" rel="noopener noreferrer">全剣連公式歴代表 ↗</a></p>
+  </section>
+  <section class="method-section"><h2>掲載基準</h2>
+    <p>対戦・技・反則・延長の各項目は全日本剣道連盟などの公式一次資料で個別に裏付けられた内容のみを掲載しています。未確認は「―」または「未確認」と表示し、0本・延長なし・敗北とは解釈しません。人物IDの他大会への紐付けは別途照合が必要です。</p>
+    <p>掲載資料の利用・表記については各公式サイトの案内をご確認ください。本サイトは個人制作の非公式データベースです。</p>
+  </section>
+</main>
+<footer class="footer">剣道記録室 · KENDO DATA ARCHIVE　|　<a href="index.html">トップページ</a></footer>
+<script src="assets/tozai-public-data.js"></script>
+<script src="assets/tozai-public.js"></script>
+</body>
+</html>
