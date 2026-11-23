@@ -47,7 +47,7 @@
       tozaiIdentityNote:'この年度の一試合だけを個人プロフィールに結び付けています。別年度の同姓同名は未照合。'});
   }
   // Round256: multi-year new profiles, only 2012/2014/2016 official roster confirmed.
-  const tozaiMultiProfiles=[...(window.KENDO_TOZAI_MULTI_PROFILES?.players||[]),...(window.KENDO_TOZAI_MULTI_257?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_258?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_259?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_262?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_263?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_264?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_266?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_267?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_268?.newProfiles||[])];
+  const tozaiMultiProfiles=[...(window.KENDO_TOZAI_MULTI_PROFILES?.players||[]),...(window.KENDO_TOZAI_MULTI_257?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_258?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_259?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_262?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_263?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_264?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_266?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_267?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_268?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_269?.newProfiles||[])];
   for(const t of tozaiMultiProfiles){
     if(players.some(p=>p.id===t.id))throw new Error('東西対抗複数年度新規ID重複: '+t.id);
     players.push({id:t.id,name:t.name,gender:t.gender,pref:t.prefecture,aff:'',ageAt2026:null,grade:'',skill:'',stance:'',high:'',univ:'',source:t.source,
@@ -796,7 +796,8 @@
     const ownMatches=multi?p.tozaiRecordCount:1;
     const tournamentList=multi?p.tozaiRosters.map(t=>t.year+'年・第'+(t.year-1954)+'回').join('、'):p.tozaiYear+'年・第'+(p.tozaiYear-1954)+'回';
     const officialRosters=multi?p.tozaiRosters.map(t=>`<a class="data-link" href="${esc(t.rosterSource)}" target="_blank" rel="noopener noreferrer">${t.year}年公式組合せ ↗</a>`).join('　'):'';
-    const url=/^https:\/\/(?:www\.)?kendo\.or\.jp\/competition\//.test(p.source||'')?p.source:'';
+    const firstOfficialMatch=multi?p.tozaiRosters.find(t=>/^https:\/\/(?:www\.)?kendo\.or\.jp\/competition\//.test(t.matchSource||''))?.matchSource:'';
+    const url=/^https:\/\/(?:www\.)?kendo\.or\.jp\/competition\//.test(p.source||'')?p.source:(firstOfficialMatch||'');
     const source=url?`<a class="data-link" href="${esc(url)}" target="_blank" rel="noopener noreferrer">全剣連・${esc(p.tozaiYear)}年大会の公式記録 ↗</a>`:'公式記録URL未照合';
     return `<div class="breadcrumb"><a href="#/players">選手名鑑</a> › ${esc(p.name)}</div>
       <div class="detail-hero"><div class="detail-main"><div class="avatar ${p.gender==='女子'?'f':''}">${esc(p.name.slice(-1))}</div><div>
