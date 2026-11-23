@@ -47,7 +47,7 @@
       tozaiIdentityNote:'この年度の一試合だけを個人プロフィールに結び付けています。別年度の同姓同名は未照合。'});
   }
   // Round256: multi-year new profiles, only 2012/2014/2016 official roster confirmed.
-  const tozaiMultiProfiles=[...(window.KENDO_TOZAI_MULTI_PROFILES?.players||[]),...(window.KENDO_TOZAI_MULTI_257?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_258?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_259?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_262?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_263?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_264?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_266?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_267?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_268?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_269?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_270?.newProfiles||[])];
+  const tozaiMultiProfiles=[...(window.KENDO_TOZAI_MULTI_PROFILES?.players||[]),...(window.KENDO_TOZAI_MULTI_257?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_258?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_259?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_262?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_263?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_264?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_266?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_267?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_268?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_269?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_270?.newProfiles||[]),...(window.KENDO_TOZAI_MULTI_271?.newProfiles||[])];
   for(const t of tozaiMultiProfiles){
     if(players.some(p=>p.id===t.id))throw new Error('東西対抗複数年度新規ID重複: '+t.id);
     players.push({id:t.id,name:t.name,gender:t.gender,pref:t.prefecture,aff:'',ageAt2026:null,grade:'',skill:'',stance:'',high:'',univ:'',source:t.source,
