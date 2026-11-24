@@ -177,6 +177,15 @@
       do:techCount(p,'胴',startYear),tsuki:techCount(p,'突き',startYear)};
   }
   const profileRow=(label,value)=>`<div>${esc(label)}</div><div>${value?esc(value):'<span class="muted">未登録</span>'}</div>`;
+  // Round 299: 2026 AJKF detailed player profiles list the actual occupation,
+  // not just the participation counts in the program PDF. Direct source links
+  // belong to the original 64 men and 64 women, never to historical/guest IDs.
+  const occupation2026OfficialSourceRow=p=>{
+    if(!/^[mw]0(?:0[1-9]|[1-5][0-9]|6[0-4])$/.test(p.id))return '';
+    const url=p.gender==='男子'?'https://www.kendo.or.jp/competition/champ-74th/':'https://www.kendo.or.jp/competition/champ-joshi-65th/';
+    return `<div>職業の出典</div><div><a href="${url}" target="_blank" rel="noopener noreferrer">2026年 全剣連選手別プロフィール ↗</a><span class="tiny muted">（同大会出場時点の記載）</span></div>`;
+  };
+
   // Ages and grades are tournament snapshots, not fixed biographical attributes.
   // Use only the most recent event with separately verified data for each field.
   const eventAgeFor=(event,p)=>{
@@ -857,7 +866,7 @@
       ${rs.length?`${statCard(titleName+'通算勝利',a.wins,'勝','2012年以降の公式掲載試合')}${statCard(titleName+'優勝',a.titles,'回','2012年以降の収録大会')}${statCard(titleName+'最高成績',finishLabel(bestRank),'',bestFoot)}`:linkedSlots.length?`${statCard('都道府県対抗女子の名簿登録',linkedSlots.length,'大会','本人実戦・勝敗とは別')}${statCard('本人実戦',((todo2026.individualBouts||[]).filter(b=>b.playerId===p.id&&b.actualBoutConfirmed).length||'未確認'),(todo2026.individualBouts||[]).some(b=>b.playerId===p.id&&b.actualBoutConfirmed)?'試合':'','2026年の確認済み分のみ')}${statCard(titleName+'個人戦成績','未収録','','不出場を意味しません')}`:`${statCard('都道府県対抗登録',1,'枠','2026年公式出場名簿')}${statCard('本人実戦',(todo2026.individualBouts||[]).filter(b=>b.playerId===p.id).length||'未調査',(todo2026.individualBouts||[]).some(b=>b.playerId===p.id)?'試合':'','登録と実戦は分離')}${statCard(titleName+'試合成績','非収録','','個人大会への不出場とは断定しない')}`}
     </div>
     <div class="detail-grid profile-grid">
-      <section class="pane wide"><h3 class="section-title">基本プロフィール</h3><div class="definition">${profileRow('氏名の読み',p.reading||'未確認')}${p.formerName?profileRow('過去の登録名・その読み',displayNameForRaw(p.formerName)+(p.formerReading?'（'+p.formerReading+'）':'')):''}${profileRegistrationRow(p,latestEvent)}${profileRow('職業・勤務先',p.aff?`${p.aff}${p.affAsOfYear?`（${p.affAsOfYear}年大会時点）`:''}`:'')}${profileRow('出場回数',appearanceText)}${profileSnapshotRow('年齢',shownAge!==null?`${shownAge}歳`:'',shownAgeEvent)}${educationProfileRow(p,'high')}${educationProfileRow(p,'univ')}${profileSnapshotRow('称号・段位',shownGrade,shownGradeEvent)}${profileRow('構え',p.stance)}${profileRow('得意技',p.skill)}</div>${renderOfficialGradeDiscrepancy(p)}${latestEvent?`<p class="small muted profile-last-source">最終出場大会：${eLink(latestEvent)}${officialAppearance?` ／ <a class="data-link" href="${esc(officialAppearance.source)}" target="_blank" rel="noopener noreferrer">出場回数の公式根拠 ↗</a>`:''}</p>`:''}</section>
+      <section class="pane wide"><h3 class="section-title">基本プロフィール</h3><div class="definition">${profileRow('氏名の読み',p.reading||'未確認')}${p.formerName?profileRow('過去の登録名・その読み',displayNameForRaw(p.formerName)+(p.formerReading?'（'+p.formerReading+'）':'')):''}${profileRegistrationRow(p,latestEvent)}${profileRow('職業・勤務先',p.aff?`${p.aff}${p.affAsOfYear?`（${p.affAsOfYear}年大会時点）`:''}`:'')}${occupation2026OfficialSourceRow(p)}${profileRow('出場回数',appearanceText)}${profileSnapshotRow('年齢',shownAge!==null?`${shownAge}歳`:'',shownAgeEvent)}${educationProfileRow(p,'high')}${educationProfileRow(p,'univ')}${profileSnapshotRow('称号・段位',shownGrade,shownGradeEvent)}${profileRow('構え',p.stance)}${profileRow('得意技',p.skill)}</div>${renderOfficialGradeDiscrepancy(p)}${latestEvent?`<p class="small muted profile-last-source">最終出場大会：${eLink(latestEvent)}${officialAppearance?` ／ <a class="data-link" href="${esc(officialAppearance.source)}" target="_blank" rel="noopener noreferrer">出場回数の公式根拠 ↗</a>`:''}</p>`:''}</section>
       ${rs.length||!linkedSlots.length?`      <section class="pane wide profile-history" style="padding:0"><div class="pane-pad"><h3 class="section-title">${esc(titleName)}・年度別成績</h3><p class="small muted">年度を押すと、その大会での全対戦結果が開きます。当時の段位は公式登録で確認できた場合のみ表示します。</p></div><div class="table-wrap profile-history-wrap"><table class="profile-history-table"><thead><tr><th>大会年度・回次</th><th>当時の年齢・称号段位</th><th>到達成績</th><th>備考</th></tr></thead><tbody>${rows}</tbody></table></div></section>`:''}
       ${rs.length||!linkedSlots.length?renderTechniqueSummary(p):''}
       ${renderWkcPlayerHistory(p)}
