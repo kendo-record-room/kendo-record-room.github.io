@@ -25,8 +25,15 @@
   for (let year=2011;year<=2025;year++) for(const item of allRosters[year-2011]) {
     const pref=fullPref(item['prefecture'+year]);
     if (!pref) continue; // No year-by-year interpolation from the latest prefecture.
+    // 2024/2025 roster entries omit `event`, despite the matching tournament
+    // being present in the official event directory. Use only explicitly
+    // verified year+gender IDs; never emit an empty #/event/ route.
+    const fallbackEvent=({2024:{'男子':'m72','女子':'w63'},
+      2025:{'男子':'m73','女子':'w64'}})[year]?.[item.gender];
+    const eventKey=item.event||fallbackEvent;
+    if (!eventKey) continue;
     add(item.playerId,{kind:'champ',year,pref,source:item.source,
-      eventKey:item.event,gender:item.gender,description:'全日本選手権・登録県'});
+      eventKey,gender:item.gender,description:'全日本選手権・登録県'});
   }
   // The 2026 championship 128 IDs carry the registered prefecture from that
   // year's official roster; never reuse that field for another year.
