@@ -749,9 +749,9 @@
     const rows=bouts.map(b=>{
       const position=b.isRepresentativeBout?`代表戦（${b.position}）`:b.position;
       const opponent=b.opponentName?todoBoutPlayer(b.opponentName,b.opponentPlayerId):'氏名未確認';
-      return `<tr><td>${esc(b.round)}</td><td>${esc(position)}</td><td>${esc(b.opponentPrefecture)} ${opponent}</td><td>${todoBoutResult(b)}</td><td>${esc(todoBoutScore(b))}</td><td><a class="data-link" href="${esc(b.officialPrimarySource)}" target="_blank" rel="noopener noreferrer">一次資料 ↗</a></td></tr>`;
+      return `<tr><td>${esc(b.round)}</td><td>${esc(position)}</td><td>${esc(b.opponentPrefecture)} ${opponent}</td><td>${todoBoutResult(b)}</td><td>${esc(todoBoutScore(b))}</td><td><a class="data-link" href="${esc(b.officialPrimarySource)}" target="_blank" rel="noopener noreferrer">参照資料 ↗</a></td></tr>`;
     }).join('');
-    return `<section class="pane wide"><div class="pane-pad"><h3 class="section-title">2025年・都道府県対抗女子 本人実戦</h3><p class="small muted">一次資料で確認できた対戦を掲載しています。</p>${todoBoutSummary(bouts)}<div class="table-wrap"><table class="profile-match-table"><thead><tr><th>回戦</th><th>位置</th><th>対戦相手</th><th>勝敗</th><th>本数・技</th><th>根拠</th></tr></thead><tbody>${rows}</tbody></table></div></div></section>`;
+    return `<section class="pane wide"><div class="pane-pad"><h3 class="section-title">2025年・都道府県対抗女子 本人実戦</h3><p class="small muted">公式大会結果・名簿、当時照合した記録板や所属先の報告等をもとに確認済みの本人実戦を掲載。参照資料へのリンクは個別の技・反則・動画投稿元まで単独で証明するとは限りません。動画の公式帰属と試合結果の確定は別管理です。</p>${todoBoutSummary(bouts)}<div class="table-wrap"><table class="profile-match-table"><thead><tr><th>回戦</th><th>位置</th><th>対戦相手</th><th>勝敗</th><th>本数・技</th><th>根拠</th></tr></thead><tbody>${rows}</tbody></table></div></div></section>`;
   }
   function renderTodoPlayerHistory(p){
     const rs=todo2026.roster.filter(r=>r.playerId===p.id);
