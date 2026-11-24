@@ -36,7 +36,7 @@
     const nav=document.createElement('nav');nav.className='profile-crossnav-283';
     nav.setAttribute('aria-label','選手ページの大会横断目次');
     const heading=document.createElement('h3');heading.textContent='この選手の収録記録へ移動';nav.append(heading);
-    const note=document.createElement('p');note.textContent='表示されている公式確認済み記録へのページ内移動です。表示されない大会は不出場を意味しません。';nav.append(note);
+    const note=document.createElement('p');note.textContent='このページに掲載された各記録への移動です。登録・本人実戦や公式確認の範囲は各欄の出典・注記を確認してください。表示されない大会は不出場を意味しません。';nav.append(note);
     const wrap=document.createElement('div');wrap.className='profile-crossnav-items-283';
     for(const item of items){
       const button=document.createElement('button');button.type='button';button.textContent=item.label;
