@@ -22,7 +22,7 @@
   // did not previously generate a player-directory entry for any of these 12 IDs.
   // Create ONE registration-only profile per proven identity, never a championship record.
   for(const [id,history] of Object.entries(todoWomenLinkedProfiles)){
-    if(players.some(p=>p.id===id))continue;
+    if(players.some(p=>p.id===id)||(window.KENDO_TOZAI_NEW_PLAYERS?.players||[]).some(t=>t.id===id))continue;
     const latest=history.entries[history.entries.length-1];
     const names=[...new Set(history.entries.map(e=>e.name))].filter(n=>norm(n)!==norm(history.name));
     players.push({id,name:history.name,gender:'女子',pref:todoPrefFull(latest.prefecture),
@@ -99,7 +99,7 @@
   const readingLabel=p=>p.reading?`<span class="name-reading">${esc(p.reading)}</span>`:'';
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const asText=s=>s?esc(s):'<span class="muted">未登録</span>';
-  const playerIdAliases={"m11_02":"m13_62","m21_26":"m24_31","w19_47":"w25_04","w19_45":"w23_33","w13_30":"w25_05","w14_18":"w20_30","w12_64":"w13_24","w13_16":"w18_64","w13_07":"w15_36","w16_12":"w17_49","w13_50":"w17_08","w14_26":"w20_25","w14_03":"w20_31","w13_12":"w14_20","w16_49":"w19_61","w17_63":"w19_27","w19_38":"w24_14","w19_63":"w24_05","w12_23":"w034"}; // 2021 凛 / 2024 凜, verified same person
+  const playerIdAliases={"m11_02":"m13_62","m21_26":"m24_31","w19_47":"w25_04","w19_45":"w23_33","w13_30":"w25_05","w14_18":"w20_30","w12_64":"w13_24","w13_16":"w18_64","w13_07":"w15_36","w16_12":"w17_49","w13_50":"w17_08","w14_26":"w20_25","w14_03":"w20_31","w13_12":"w14_20","w16_49":"w19_61","w17_63":"w19_27","w19_38":"w24_14","w19_63":"w24_05","w12_23":"w034","tdw23_024":"w25_24","tdw25_032":"w25_62","tdw22_010":"w25_30","tdw25_065":"w22_58","tdw25_073":"w046","tdw25_080":"w008","tdw18_058":"w25_04","tdw18_077":"w25_29","tdw25_151":"w18_60","tdw24_212":"w25_09","tdw25_194":"w25_05","tdw19_142":"w002","tdw25_207":"w14_54","tdw19_036":"w039","tdw25_230":"tzw_cbc27db48eff","tdw25_244":"w19_62","tdw23_258":"w16_34","tdw24_009":"w23_55","tdw24_051":"w040","tdw24_059":"w25_46","tdw24_066":"w24_47","tdw17_152":"w24_05","tdw24_086":"w25_26","tdw24_096":"w24_23","tdw24_131":"w17_33","tdw24_170":"w24_37","tdw24_179":"w21_24","tdw24_234":"w22_26","tdw23_276":"w23_32","tdw24_311":"w22_23","tdw24_324":"w24_63","tdw24_007":"tzw_06087f22529e","tdw23_013":"w13_13","tdw24_041":"tzw_5d021d425a5e","tdw24_119":"tzw_28c99c11af7a","tdw24_285":"w23_34","tdw23_023":"w23_26","tdw23_048":"w22_60","tdw23_079":"w21_35","tdw23_108":"w23_51","tdw23_122":"w16_06","tdw23_149":"w049","tdw23_158":"w22_36","tdw23_180":"w16_58","tdw23_304":"w20_64","tdw23_321":"w15_39","tdw23_082":"w20_34","tdw23_088":"w17_04","tdw23_093":"w20_47","tdw23_094":"w029","tdw23_095":"w20_31","tdw23_110":"w20_61","tdw23_161":"tzw_2b41523b5721","tdw23_164":"w21_38","tdw23_193":"w22_09","tdw18_167":"w19_52","tdw23_257":"w13_61","tdw23_282":"w21_57","tdw23_296":"w20_46","tdw25_013":"tdw24_013","tdw25_114":"tdw24_114","tdw25_138":"tdw24_137","tdw19_022":"w24_51","tdw22_192":"w22_63","tdw25_299":"tdw24_300","tdw25_312":"tdw24_312","tdw22_038":"w19_15","tdw22_044":"w20_29","tdw22_295":"w24_61","tdw21_227":"w21_16"}; // 2021 凛 / 2024 凜, verified same person
   const canonicalPlayerId=id=>playerIdAliases[id]||id;
   const playersById=new Map(players.map(p=>[p.id,p]));
   const eventsById=new Map(events.map(e=>[e.id,e]));
@@ -812,12 +812,12 @@
     return `<div class="breadcrumb"><a href="#/players">選手名鑑</a> › ${esc(p.name)}</div>
       <div class="detail-hero"><div class="detail-main"><div class="avatar ${p.gender==='女子'?'f':''}">${esc(p.name.slice(-1))}</div><div>
       <p class="eyebrow" style="margin:0">TOZAI-TAIKO · RECORD PROFILE</p><h2>${esc(p.name)}</h2>
-      <p class="detail-reading">読み：公式資料未確認</p><div class="detail-pills">${badge(p.gender)} ${badge('東西対抗・試合記録のみ')}</div></div></div></div>
+      <p class="detail-reading">読み：公式資料未確認</p><div class="detail-pills">${badge(p.gender)} ${badge(todoWomenLinkedProfiles[p.id]?'東西対抗・都道府県対抗':'東西対抗・試合記録のみ')}</div></div></div></div>
       <div class="stats profile-stats">${statCard('東西対抗・本人試合',ownMatches,'試合',multi?('本人照合済み'+p.tozaiYears.length+'年度'):'この年度の公式確認分')}${statCard('確認された大会年度',multi?p.tozaiYears.join('･'):p.tozaiYear,'年',multi?(p.tozaiYears.join('・')+'年のみ連結'):'別年度の同姓同名は未統合')}${statCard('全日本選手権の戦績','未収録','','出場なしの意味ではありません')}</div>
       <div class="detail-grid profile-grid"><section class="pane wide"><h3 class="section-title">基本プロフィール（公式記録で確認できる範囲）</h3>
-      <div class="definition">${profileRow('氏名',p.name)}${profileRow('氏名の読み','未確認')}${profileRow('区分',p.gender)}${profileRow('確認できた大会',tournamentList+' 全日本東西対抗剣道大会')}${profileRow('所属・代表都道府県',multi?p.pref+'（'+p.tozaiYears.join('・')+'年公式名簿）':'未確認')}${profileRow('年齢・段位',ageInfo?ageInfo+'（段位未確認）':'未確認')}${profileRow('出身校','未確認')}</div>
+      <div class="definition">${profileRow('氏名',p.name)}${profileRow('氏名の読み','未確認')}${profileRow('区分',p.gender)}${profileRow('確認できた大会',tournamentList+' 全日本東西対抗剣道大会')}${profileRow('所属・代表都道府県',todoWomenLinkedProfiles[p.id]?todoPrefFull(todoWomenLinkedProfiles[p.id].entries.at(-1).prefecture)+'（'+todoWomenLinkedProfiles[p.id].entries.at(-1).year+'年都道府県対抗代表）':multi?p.pref+'（'+p.tozaiYears.join('・')+'年公式名簿）':'未確認')}${profileRow('年齢・段位',ageInfo?ageInfo+'（段位未確認）':'未確認')}${profileRow('出身校','未確認')}</div>
       <p class="small muted" style="margin-top:15px">出典：${source}${multi?`<div class="small muted">人物照合根拠：${officialRosters}</div>`:''}</p></section></div>
-      <p class="footnote">${multi?'※このプロフィールは'+p.tozaiYears.join('・')+'年の全剣連公式名簿により同県・年齢推移を確認した'+p.tozaiYears.length+'大会に限定します。その他年度の同姓同名は未統合。全日本選手権のランキング・比較には加算しません。':`※このプロフィールは${esc(p.tozaiYear)}年大会の本人実戦１件だけを根拠に追加しました。他大会の出場、複数年度間の同一人物性、年齢・所属・段位は未照合。全日本選手権のランキング・比較には加算しません。`}</p>`;
+      ${renderLinkedTodoWomenHistory(p)}<p class="footnote">${todoWomenLinkedProfiles[p.id]?'※東西対抗の本人実戦と公式都道府県対抗登録を区別して掲載します。全日本選手権のランキング・比較には加算しません。':multi?'※このプロフィールは'+p.tozaiYears.join('・')+'年の全剣連公式名簿により同県・年齢推移を確認した'+p.tozaiYears.length+'大会に限定します。その他年度の同姓同名は未統合。全日本選手権のランキング・比較には加算しません。':`※このプロフィールは${esc(p.tozaiYear)}年大会の本人実戦１件だけを根拠に追加しました。他大会の出場、複数年度間の同一人物性、年齢・所属・段位は未照合。全日本選手権のランキング・比較には加算しません。`}</p>`;
   }
   function renderPlayer(id){
     id=canonicalPlayerId(id);
