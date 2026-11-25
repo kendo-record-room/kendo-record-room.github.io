@@ -744,6 +744,11 @@
     }).join('');
   }
   // Only documented team *registrations* are shown; never add these to individual-championship rankings.
+  function renderTodoWomenProgram2026(p){
+    const r=todoWomenProgram2026[p.id];
+    if(!r)return '';
+    return `<section class="pane wide"><h3 class="section-title">2026年女子都道府県対抗・大会名簿情報</h3><p class="small muted">2026年7月12日大会時点の公式プログラム記載。現在の勤務先・在籍を意味するものではありません。</p><div class="definition">${profileRow('代表県・登録位置',todoPrefFull(r.prefecture)+'・'+r.position)}${r.school?profileRow('出身校（名簿記載）',r.school):''}${r.occupation?profileRow('職業・勤務先・在籍校（名簿記載）',r.occupation):''}${r.career?profileRow('剣歴（名簿記載・年度未特定）',r.career):''}</div>${r.career?'<p class="small muted">剣歴は公式プログラムの記載に基づくもので、個別大会の年度・実戦・ランキングには加算していません。</p>':''}<p class="small muted"><a class="data-link" href="${esc(r.source)}" target="_blank" rel="noopener noreferrer">全剣連公式大会プログラム（PDF） ↗</a> ／ 登録情報と本人実戦は別管理。</p></section>`;
+  }
   function renderTodoWomenAwards(p){
     const rows=todoWomenAwards.filter(r=>!p||r.playerId===p.id).sort((a,b)=>b.year-a.year);
     if(!rows.length)return '';
@@ -824,7 +829,7 @@
       <div class="detail-grid profile-grid"><section class="pane wide"><h3 class="section-title">基本プロフィール（公式記録で確認できる範囲）</h3>
       <div class="definition">${profileRow('氏名',p.name)}${profileRow('氏名の読み','未確認')}${profileRow('区分',p.gender)}${profileRow('確認できた大会',tournamentList+' 全日本東西対抗剣道大会')}${profileRow('所属・代表都道府県',todoWomenLinkedProfiles[p.id]?todoPrefFull(todoWomenLinkedProfiles[p.id].entries.at(-1).prefecture)+'（'+todoWomenLinkedProfiles[p.id].entries.at(-1).year+'年都道府県対抗代表）':multi?p.pref+'（'+p.tozaiYears.join('・')+'年公式名簿）':'未確認')}${profileRow('年齢・段位',ageInfo?ageInfo+'（段位未確認）':'未確認')}${profileRow('出身校','未確認')}</div>
       <p class="small muted" style="margin-top:15px">出典：${source}${multi?`<div class="small muted">人物照合根拠：${officialRosters}</div>`:''}</p></section>
-      ${renderTodoWomenAwards(p)}${renderLinkedTodoWomenHistory(p)}</div><p class="footnote">${todoWomenLinkedProfiles[p.id]?'※東西対抗の本人実戦と公式都道府県対抗登録を区別して掲載します。全日本選手権のランキング・比較には加算しません。':multi?'※このプロフィールは'+p.tozaiYears.join('・')+'年の全剣連公式名簿により同県・年齢推移を確認した'+p.tozaiYears.length+'大会に限定します。その他年度の同姓同名は未統合。全日本選手権のランキング・比較には加算しません。':`※このプロフィールは${esc(p.tozaiYear)}年大会の本人実戦１件だけを根拠に追加しました。他大会の出場、複数年度間の同一人物性、年齢・所属・段位は未照合。全日本選手権のランキング・比較には加算しません。`}</p>`;
+      ${renderTodoWomenProgram2026(p)}${renderTodoWomenAwards(p)}${renderLinkedTodoWomenHistory(p)}</div><p class="footnote">${todoWomenLinkedProfiles[p.id]?'※東西対抗の本人実戦と公式都道府県対抗登録を区別して掲載します。全日本選手権のランキング・比較には加算しません。':multi?'※このプロフィールは'+p.tozaiYears.join('・')+'年の全剣連公式名簿により同県・年齢推移を確認した'+p.tozaiYears.length+'大会に限定します。その他年度の同姓同名は未統合。全日本選手権のランキング・比較には加算しません。':`※このプロフィールは${esc(p.tozaiYear)}年大会の本人実戦１件だけを根拠に追加しました。他大会の出場、複数年度間の同一人物性、年齢・所属・段位は未照合。全日本選手権のランキング・比較には加算しません。`}</p>`;
   }
   function renderPlayer(id){
     id=canonicalPlayerId(id);
@@ -879,7 +884,7 @@
       ${renderWkcPlayerHistory(p)}
       ${renderWkcTeamPlayerHistory(p)}
       ${renderAokcPlayerHistory(p)}
-      ${renderTodoWomenAwards(p)}
+      ${renderTodoWomenProgram2026(p)}${renderTodoWomenAwards(p)}
       ${renderLinkedTodoWomenHistory(p)}
       ${renderTodo2025PlayerHistory(p)}
       ${renderTodoPlayerHistory(p)}
