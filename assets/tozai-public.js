@@ -16,14 +16,10 @@
  $('totalBouts').textContent=allBouts.toLocaleString('ja-JP');
  $('unconfirmedBouts').textContent=(data.expected-allBouts).toLocaleString('ja-JP');
  $('totalYears').textContent=years.length;
- function displayTechnique(b){
-   const details=[b.left,b.right].filter(Boolean).map(p=>{
-     if(Array.isArray(p.strikes) && p.strikes.length)return `${esc(p.name)}：${esc(p.strikes.join('・'))}`;
-     return null;
-   }).filter(Boolean);
-   if(details.length)return details.join('<span class="skill"> / </span>');
-   if(b.finishingTechnique)return `決まり技：${esc(b.finishingTechnique)}<span class="skill">全取得技は未確認</span>`;
-   return '<span class="unknown">―</span>';
+ function displayTechnique(b,east,west){
+   const num=p=>p.points==null?'—':esc(p.points);
+   const tech=p=>Array.isArray(p.strikes)&&p.strikes.length?esc(p.strikes.join(''))+(p.points!=null&&p.strikes.length<p.points?'・未確認':''):p.points===0?'&emsp;':'未確認';
+   return `<div class="oriented-score"><strong class="score-numbers">${num(east)} - ${num(west)}</strong><div class="score-techs">（<span>${tech(east)}</span> - <span>${tech(west)}</span>）</div>${b.finishingTechnique&&![east,west].some(p=>Array.isArray(p.strikes)&&p.strikes.length)?`<div class="small">決まり技：${esc(b.finishingTechnique)}</div>`:''}</div>`;
  }
  function scoreText(p){ if(p.points === null || p.points === undefined)return '本数未確認';return `${p.points}本`; }
  function render(){
@@ -46,7 +42,7 @@
      const showName=(p,side)=>{const id=profileLinks[b.id]?.[side];return `${id?`<a class="player-link" href="index.html#/player/${encodeURIComponent(id)}">${esc(p.name??'未確認')}</a>`:`<strong>${esc(p.name??'未確認')}</strong>`}<span class="skill">${esc(scoreText(p))}</span>`};
      const result=b.winner ? `<span class="winner">${esc(b.winner)}勝利</span>` : (String(b.outcome||'').includes('引')?'引き分け':'<span class="unknown">勝敗未確認</span>');
      const ext=b.extension===true?'あり':b.extension===false?'なし':'<span class="unknown">未確認</span>';
-     return `<tr data-bout="${esc(b.id)}" class="${params.get('bout')===b.id?'linked-target':''}"><td>${esc(b.order??'―')}<span class="skill">${esc(b.position||'―')}</span></td><td>${showName(east,east===b.left?'left':'right')}</td><td>${showName(west,west===b.left?'left':'right')}</td><td>${result}</td><td>${displayTechnique(b)}</td><td>${ext}</td><td>${srcLink(b.source,'公式')}</td></tr>`;
+     return `<tr data-bout="${esc(b.id)}" class="${params.get('bout')===b.id?'linked-target':''}"><td>${esc(b.order??'―')}<span class="skill">${esc(b.position||'―')}</span></td><td>${showName(east,east===b.left?'left':'right')}</td><td>${showName(west,west===b.left?'left':'right')}</td><td>${result}</td><td>${displayTechnique(b,east,west)}</td><td>${ext}</td><td>${srcLink(b.source,'公式')}</td></tr>`;
    }).join('');
    $('emptyMatches').hidden=visible.length>0;
    const partial=r.partialObservations.filter(o=>o.name);

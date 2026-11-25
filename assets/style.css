@@ -352,3 +352,9 @@ body.modal-open{overflow:hidden}
 .profile-pref-entry .profile-fact-current{display:block;font-weight:650}
 .profile-pref-entry .profile-fact-asof{display:block;margin-top:3px;color:var(--muted);font-size:11px;line-height:1.45}
 .profile-pref-caution{display:block;margin-top:10px;color:var(--muted);font-size:11px;line-height:1.5}
+
+/* r389 tournament groups and compact results */
+.event-directory-group+ .event-directory-group{border-top:1px solid var(--line)}
+.event-directory-group>summary{cursor:pointer;display:flex;align-items:center;gap:12px;padding:18px 20px;list-style:none;color:var(--ink);background:#f4f7f8}
+.event-directory-group>summary::-webkit-details-marker{display:none}.event-directory-group>summary:before{content:'▶';font-size:11px;color:#285a7c}.event-directory-group[open]>summary:before{content:'▼'}.event-directory-group>summary span{margin-left:auto;color:var(--muted);font-size:12px}.event-directory-group .event-directory-row{padding-left:34px}.result-b-note{display:block;margin-top:5px;font-size:11px;color:#956320;font-weight:normal}
+@media(max-width:700px){.event-results-table>tbody>.event-player-row>td:nth-child(4){grid-column:2;grid-row:1/4;display:flex;align-items:center;justify-content:flex-end}.result-dialog-table tr:not([hidden]){grid-template-rows:auto auto auto auto}.result-dialog-table tr>td:nth-child(3){grid-column:1/-1;grid-row:3}.result-dialog-table tr>td:nth-child(4){grid-column:1/-1;grid-row:4;text-align:left}.event-directory-group .event-directory-row{padding-left:16px}}
