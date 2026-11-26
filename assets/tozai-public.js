@@ -24,7 +24,9 @@
  function scoreText(p){ if(p.points === null || p.points === undefined)return '本数未確認';return `${p.points}本`; }
  function render(){
    const year=Number(yearSelect.value),gender=$('genderSelect').value;
-   const term=$('nameSearch').value.trim().normalize('NFKC');
+   const cleanName=n=>String(n??'').normalize('NFKC').replace(/\s+/g,'');
+   const correctedNames={'TOZAI-2023-M-04:left':'地白 允大','TOZAI-2023-M-06:right':'上地 安一郎'};
+   const term=cleanName($('nameSearch').value);
    const r=data.records.find(r=>r.year===year && r.gender===gender);if(!r)return;
    $('yearCaption').textContent=`${r.date || year} / ${gender}`;
    $('eventTitle').textContent=r.event+'・'+gender;
@@ -35,11 +37,11 @@
       return `<div class="scorebox ${team.winner===side?'won':''}"><div class="side">${side}${team.winner===side?' · 勝利':''}</div><div class="score">${s.wins===null||s.wins===undefined?'―':esc(s.wins)}勝</div><div class="small">${s.points===null||s.points===undefined?'取得本数未確認':`${esc(s.points)}本取得`}</div></div>`;
    }).join('') + (team.winner ? '' : '<span class="score-foot">団体勝者未確認</span>');
    const expected = year>=2022? (gender==='男子'?31:9):(gender==='男子'?35:5);
-   const visible=r.bouts.filter(b=>!term || [b.left.name,b.right.name].some(n=>String(n??'').normalize('NFKC').includes(term)));
+   const visible=r.bouts.filter(b=>!term || [b.left.name,b.right.name,correctedNames[b.id+':left'],correctedNames[b.id+':right']].some(n=>cleanName(n).includes(term)));
    $('coverage').textContent=`確認済み対戦 ${r.bouts.length} / ${expected}試合${r.bouts.length < expected ? '（他は個人別結果未収録）' : ''}。勝敗不明の試合は空欄を推測しません。`;
    $('matchRows').innerHTML=visible.map(b=>{
      const east=b.left.side==='東軍'?b.left:b.right;const west=b.left.side==='西軍'?b.left:b.right;
-     const showName=(p,side)=>{const id=profileLinks[b.id]?.[side];return `${id?`<a class="player-link" href="index.html#/player/${encodeURIComponent(id)}">${esc(p.name??'未確認')}</a>`:`<strong>${esc(p.name??'未確認')}</strong>`}<span class="skill">${esc(scoreText(p))}</span>`};
+     const showName=(p,side)=>{const id=profileLinks[b.id]?.[side];const corrected=correctedNames[b.id+':'+side];return `${id?`<a class="player-link" href="index.html#/player/${encodeURIComponent(id)}">${esc(corrected||p.name||'未確認')}</a>${corrected?`<span class="skill">原記載：${esc(p.name)}</span>`:''}`:`<strong>${esc(p.name??'未確認')}</strong>`}<span class="skill">${esc(scoreText(p))}</span>`};
      const result=b.winner ? `<span class="winner">${esc(b.winner)}勝利</span>` : (String(b.outcome||'').includes('引')?'引き分け':'<span class="unknown">勝敗未確認</span>');
      const ext=b.extension===true?'あり':b.extension===false?'なし':'<span class="unknown">未確認</span>';
      return `<tr data-bout="${esc(b.id)}" class="${params.get('bout')===b.id?'linked-target':''}"><td>${esc(b.order??'―')}<span class="skill">${esc(b.position||'―')}</span></td><td>${showName(east,east===b.left?'left':'right')}</td><td>${showName(west,west===b.left?'left':'right')}</td><td>${result}</td><td>${displayTechnique(b,east,west)}</td><td>${ext}</td><td>${srcLink(b.source,'公式')}</td></tr>`;
